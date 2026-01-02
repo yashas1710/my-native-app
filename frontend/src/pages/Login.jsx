@@ -1,74 +1,39 @@
+// src/pages/Login.jsx
 import { useState } from "react";
-import api from "../api";
-import toast from "react-hot-toast";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const onChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const validate = () => {
-    const newErrors = {};
-    if (!form.email) newErrors.email = "Email is required";
-    if (!form.password) newErrors.password = "Password is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const login = async () => {
     try {
-      setLoading(true);
-      const res = await api.post("/auth/login", form);
-      localStorage.setItem("token", res.data.token);
-      toast.success("Login successful!");
-      window.location.href = "/";
-    } catch (err) {
-      toast.error(err.response?.data?.msg || "Login failed");
-    } finally {
-      setLoading(false);
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("Logged in");
+      navigate("/home"); //redirect after login
+    } catch (e) {
+      alert(e.message || "Login failed");
     }
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Login</h2>
-      <form onSubmit={submit} className="flex flex-col gap-2">
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={onChange}
-          className="border p-2"
-        />
-        {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={onChange}
-          className="border p-2"
-        />
-        {errors.password && (
-          <p className="text-red-500 text-sm">{errors.password}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white p-2 rounded disabled:opacity-60"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
+    <div className="container">
+      <h2>Login</h2>
+      <input
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        placeholder="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button onClick={login}>Login</button>
     </div>
   );
 }

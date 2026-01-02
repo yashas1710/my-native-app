@@ -1,119 +1,101 @@
+// src/pages/CreatePlan.jsx
 import { useState } from "react";
-import api from "../api";
-import toast from "react-hot-toast";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import Button from "../components/Button";
 
 export default function CreatePlan() {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    datetime: "",
-    location: "",
-    max_spots: ""
-  });
-  const [errors, setErrors] = useState({});
+  const { user } = useAuth();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [datetime, setDatetime] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const onChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const validate = () => {
-    const newErrors = {};
-    if (!form.title) newErrors.title = "Title is required";
-    if (!form.datetime) newErrors.datetime = "Date & time are required";
-    else {
-      const dt = new Date(form.datetime);
-      if (dt.getTime() < Date.now() + 5 * 60 * 1000) {
-        newErrors.datetime = "Time must be at least 5 minutes in the future";
-      }
-    }
-    if (!form.location) newErrors.location = "Location is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const submit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!title || !description || !datetime) return;
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const payload = {
-        title: form.title,
-        description: form.description,
-        datetime: new Date(form.datetime),
-        location: form.location,
-        max_spots: form.max_spots ? Number(form.max_spots) : undefined,
-      };
-
-      const res = await api.post("/plans", payload);
-      toast.success(res.data.msg || "Plan created successfully!");
-      window.location.href = `/plans/${res.data.plan._id}`;
-    } catch (err) {
-      toast.error(err.response?.data?.msg || "Failed to create plan");
+      await addDoc(collection(db, "plans"), {
+        title,
+        description,
+        datetime,
+        creator_id: user.uid,
+        created_at: new Date().toISOString(),
+      });
+      setSuccess(true);
+      setTitle("");
+      setDescription("");
+      setDatetime("");
+    } catch (error) {
+      console.error("Error creating plan:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  if (!user) return <p className="p-6">Please login to create a plan.</p>;
+
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Create Plan</h2>
-      <form onSubmit={submit} className="flex flex-col gap-2">
-        <input
-          name="title"
-          placeholder="Title"
-          value={form.title}
-          onChange={onChange}
-          className="border p-2"
-        />
-        {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+    <div className="max-w-2xl mx-auto p-6">
+      <h1 className="text-3xl font-heading font-bold mb-6 text-brand-dark">
+        Create a New Plan
+      </h1>
 
-        <textarea
-          name="description"
-          placeholder="Description (optional)"
-          value={form.description}
-          onChange={onChange}
-          className="border p-2"
-        />
+      {success && (
+        <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
+          ✅ Plan created successfully!
+        </div>
+      )}
 
-        <input
-          name="datetime"
-          type="datetime-local"
-          value={form.datetime}
-          onChange={onChange}
-          className="border p-2"
-        />
-        {errors.datetime && (
-          <p className="text-red-500 text-sm">{errors.datetime}</p>
-        )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Title
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full border rounded px-3 py-2 focus:ring-brand focus:border-brand"
+            placeholder="Enter plan title"
+            required
+          />
+        </div>
 
-        <input
-          name="location"
-          placeholder="Location"
-          value={form.location}
-          onChange={onChange}
-          className="border p-2"
-        />
-        {errors.location && (
-          <p className="text-red-500 text-sm">{errors.location}</p>
-        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full border rounded px-3 py-2 focus:ring-brand focus:border-brand"
+            placeholder="Enter plan details"
+            rows="3"
+            required
+          />
+        </div>
 
-        <input
-          name="max_spots"
-          type="number"
-          placeholder="Max spots (optional)"
-          value={form.max_spots}
-          onChange={onChange}
-          className="border p-2"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date & Time
+          </label>
+          <input
+            type="datetime-local"
+            value={datetime}
+            onChange={(e) => setDatetime(e.target.value)}
+            className="w-full border rounded px-3 py-2 focus:ring-brand focus:border-brand"
+            required
+          />
+        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-green-600 text-white p-2 rounded disabled:opacity-60"
-        >
-          {loading ? "Creating..." : "Create"}
-        </button>
+        <Button type="submit" variant="primary">
+          {loading ? "Creating..." : "Create Plan"}
+        </Button>
       </form>
     </div>
   );

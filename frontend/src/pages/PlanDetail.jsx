@@ -1,82 +1,94 @@
+// src/pages/PlanDetail.jsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import api from "../api";
-import toast from "react-hot-toast";
-import Loader from "../components/Loader";
+import { doc, getDoc, addDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import { formatDate } from "../utils/formatDate";
+import Card from "../components/Card";
 
 export default function PlanDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [plan, setPlan] = useState(null);
+  const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch plan details
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get(`/plans/${id}`);
-        setPlan(res.data.plan);
-      } catch (err) {
-        toast.error(err.response?.data?.msg || "Failed to load plan");
-      } finally {
-        setLoading(false);
+    const fetchPlan = async () => {
+      const docRef = doc(db, "plans", id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setPlan({ id: docSnap.id, ...docSnap.data() });
       }
-    })();
+      setLoading(false);
+    };
+    fetchPlan();
   }, [id]);
 
-  const join = async () => {
-    try {
-      const res = await api.post(`/plans/${id}/join`);
-      toast.success(res.data.msg || "Joined plan!");
-      const updated = await api.get(`/plans/${id}`);
-      setPlan(updated.data.plan);
-    } catch (err) {
-      toast.error(err.response?.data?.msg || "Failed to join");
-    }
+  // Fetch participants
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      const q = query(collection(db, "planParticipants"), where("plan_id", "==", id));
+      const querySnapshot = await getDocs(q);
+      const participantsData = querySnapshot.docs.map((doc) => doc.data());
+      setParticipants(participantsData);
+    };
+    fetchParticipants();
+  }, [id]);
+
+  // Join plan
+  const joinPlan = async () => {
+    if (!user) return;
+    await addDoc(collection(db, "planParticipants"), {
+      plan_id: id,
+      user_id: user.uid,
+      email: user.email,
+      joined_at: new Date(),
+    });
+    alert("You joined this plan!");
+    // Refresh participants list
+    const q = query(collection(db, "planParticipants"), where("plan_id", "==", id));
+    const querySnapshot = await getDocs(q);
+    setParticipants(querySnapshot.docs.map((doc) => doc.data()));
   };
 
-  if (loading) return <Loader />;
-  if (!plan) return <div className="p-4">Plan not found</div>;
+  if (loading) return <p className="p-6">Loading...</p>;
+  if (!plan) return <p className="p-6">Plan not found</p>;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto border rounded-lg shadow-sm bg-white">
-      <div className="flex justify-between items-start mb-4">
-        <h2 className="text-2xl font-bold">{plan.title}</h2>
-        <div className="text-right">
-          <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">
-            {plan.participants?.length || 0} going
-          </span>
-          {plan.max_spots ? (
-            <p className="text-gray-600 text-xs mt-1">
-              {plan.max_spots - (plan.participants?.length || 0)} spots left
-            </p>
-          ) : null}
+    <div className="p-6 max-w-xl mx-auto">
+      <Card plan={plan} showButton={false} />
+
+      {user && (
+        <div className="mt-4">
+          <button
+            onClick={joinPlan}
+            className="bg-brand text-white px-4 py-2 rounded hover:bg-brand-dark transition mb-6"
+          >
+            I’m In
+          </button>
         </div>
-      </div>
-
-      <p className="mb-2">{plan.description}</p>
-      <p className="text-gray-600 mb-2">
-        {new Date(plan.datetime).toLocaleString()} • {plan.location}
-      </p>
-      <p className="mb-4 text-sm text-gray-500">
-        Created by {plan.creator_id?.name || "Unknown"}
-      </p>
-
-      <button
-        onClick={join}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition mb-6"
-      >
-        Join Plan
-      </button>
-
-      <h3 className="text-xl font-semibold mb-2">Participants</h3>
-      {!plan.participants || plan.participants.length === 0 ? (
-        <p className="text-gray-500 italic">No one has joined yet.</p>
-      ) : (
-        <ul className="list-disc pl-5">
-          {plan.participants.map((p) => (
-            <li key={p._id}>{p.name || p.email}</li>
-          ))}
-        </ul>
       )}
+
+      <div className="mt-6 bg-white rounded shadow-card p-4">
+        <h2 className="text-xl font-semibold mb-2 text-brand">Participants</h2>
+        {participants.length > 0 ? (
+          <ul className="space-y-2">
+            {participants.map((p, idx) => (
+              <li
+                key={idx}
+                className="bg-gray-100 px-3 py-2 rounded text-gray-700 shadow-sm"
+              >
+                {p.email}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500">No one has joined yet.</p>
+        )}
+      </div>
     </div>
   );
 }
