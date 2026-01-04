@@ -1,58 +1,54 @@
-// public/service-worker.js
-
-// Load Workbox from CDN
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js");
 
 if (workbox) {
   console.log("✅ Workbox loaded");
 
-  // Precache build assets (Vite inject karega __WB_MANIFEST)
+  // Precache build assets
   workbox.precaching.precacheAndRoute(self.__WB_MANIFEST || []);
 
-  // Cache static assets (CSS, JS, fonts, images)
+  // Cache static assets (JS, CSS, fonts, images)
   workbox.routing.registerRoute(
     ({ request }) =>
-      request.destination === "style" ||
-      request.destination === "script" ||
-      request.destination === "font" ||
-      request.destination === "image",
+      ["style", "script", "font", "image"].includes(request.destination),
     new workbox.strategies.CacheFirst({
       cacheName: "static-assets",
       plugins: [
         new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
-        new workbox.expiration.ExpirationPlugin({
-          maxEntries: 100,
-          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-        }),
-      ],
+        new workbox.expiration.ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 30*24*60*60 })
+      ]
     })
   );
 
-  // Cache API calls (Firestore / dynamic data)
+  // Cache Firestore / API calls
   workbox.routing.registerRoute(
     ({ url }) => url.origin.includes("firestore.googleapis.com"),
     new workbox.strategies.NetworkFirst({
       cacheName: "api-cache",
       plugins: [
-        new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
-        new workbox.expiration.ExpirationPlugin({
-          maxEntries: 50,
-          maxAgeSeconds: 5 * 60, // 5 minutes
-        }),
-      ],
+        new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0,200] }),
+        new workbox.expiration.ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 5*60 })
+      ]
     })
   );
 
-  // Cache HTML (navigation requests)
+  // Cache navigation (HTML)
   workbox.routing.registerRoute(
     ({ request }) => request.mode === "navigate",
     new workbox.strategies.NetworkFirst({
       cacheName: "html-cache",
       plugins: [
-        new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
-      ],
+        new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0,200] })
+      ]
     })
   );
+
+  // Offline fallback
+  workbox.routing.setCatchHandler(({ event }) => {
+    if (event.request.destination === 'document') {
+      return caches.match('/offline.html');
+    }
+    return Response.error();
+  });
 } else {
   console.log("❌ Workbox failed to load");
 }
