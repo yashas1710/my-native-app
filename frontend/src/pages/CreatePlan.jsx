@@ -1,101 +1,124 @@
 // src/pages/CreatePlan.jsx
 import { useState } from "react";
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "../firebase";
-import { useAuth } from "../context/AuthContext";
-import Button from "../components/Button";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { validatePlanDates } from "../utils/validatePlanDates";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function CreatePlan() {
-  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [datetime, setDatetime] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [loading, setLoading] = useState(false); // ✅ Loading state
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !description || !datetime) return;
 
-    setLoading(true);
+    // ✅ Title/Description validation
+    if (title.length < 5 || title.length > 50) {
+      toast.error("Title must be between 5 and 50 characters");
+      return;
+    }
+
+    if (description.length < 10 || description.length > 300) {
+      toast.error("Description must be between 10 and 300 characters");
+      return;
+    }
+
+    // ✅ Date validation
+    const { valid, message } = validatePlanDates(startDate, endDate);
+    if (!valid) {
+      toast.error(message);
+      return;
+    }
+
     try {
+      setLoading(true);
+
       await addDoc(collection(db, "plans"), {
         title,
         description,
-        datetime,
-        creator_id: user.uid,
-        created_at: new Date().toISOString(),
+        startDate: new Date(startDate),   // converts string → Date → Firestore Timestamp
+        endDate: new Date(endDate),
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.uid || "anonymous",
       });
-      setSuccess(true);
+
+      // Reset form
       setTitle("");
       setDescription("");
-      setDatetime("");
-    } catch (error) {
-      console.error("Error creating plan:", error);
+      setStartDate("");
+      setEndDate("");
+
+      toast.success("Plan created successfully ✅");
+    } catch (err) {
+      console.error("Error creating plan:", err);
+      toast.error("Failed to create plan ❌");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!user) return <p className="p-6">Please login to create a plan.</p>;
-
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-3xl font-heading font-bold mb-6 text-brand-dark">
-        Create a New Plan
-      </h1>
+    <div className="p-6 max-w-md mx-auto">
+      {/* ✅ Toaster for toast notifications */}
+      <Toaster position="top-right" reverseOrder={false} />
 
-      {success && (
-        <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
-          ✅ Plan created successfully!
-        </div>
-      )}
+      <h1 className="text-2xl font-bold mb-4">Create New Plan</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:ring-brand focus:border-brand"
-            placeholder="Enter plan title"
-            required
-          />
-        </div>
+        {/* Title */}
+        <input
+          type="text"
+          placeholder="Plan Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full border rounded p-2"
+          required
+          minLength={5} // HTML validation fallback
+          maxLength={50}
+        />
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:ring-brand focus:border-brand"
-            placeholder="Enter plan details"
-            rows="3"
-            required
-          />
-        </div>
+        {/* Description */}
+        <textarea
+          placeholder="Plan Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full border rounded p-2"
+          required
+          minLength={10}
+          maxLength={300}
+        />
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date & Time
-          </label>
-          <input
-            type="datetime-local"
-            value={datetime}
-            onChange={(e) => setDatetime(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:ring-brand focus:border-brand"
-            required
-          />
-        </div>
+        {/* Start Date + Time */}
+        <input
+          type="datetime-local"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="w-full border rounded p-2"
+          required
+        />
 
-        <Button type="submit" variant="primary">
+        {/* End Date + Time */}
+        <input
+          type="datetime-local"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="w-full border rounded p-2"
+          required
+        />
+
+        {/* Submit Button with loading state */}
+        <button
+          type="submit"
+          className={`bg-brand-dark text-white px-4 py-2 rounded hover:bg-brand-light transition ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={loading}
+        >
           {loading ? "Creating..." : "Create Plan"}
-        </Button>
+        </button>
       </form>
     </div>
   );
