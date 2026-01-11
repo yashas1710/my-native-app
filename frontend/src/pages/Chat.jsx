@@ -29,14 +29,15 @@ export default function Chat({ planId, onClose }) {
   }, [planId]);
 
   const handleSend = async () => {
-    if (!newMessage.trim()) return;
-    await addDoc(collection(db, "plans", planId, "messages"), {
-      text: newMessage,
-      senderId: user.uid,
-      createdAt: serverTimestamp(),
-    });
-    setNewMessage("");
-  };
+  if (!newMessage.trim()) return;
+  await addDoc(collection(db, "plans", planId, "messages"), {
+    text: newMessage,
+    user_id: user.uid,        // match Firestore rules
+    createdAt: serverTimestamp(),
+  });
+  setNewMessage("");
+};
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -53,15 +54,16 @@ export default function Chat({ planId, onClose }) {
       <div className="flex-1 overflow-y-auto mb-2 space-y-2 max-h-80">
         {messages.map((msg) => (
           <div
-            key={msg.id}
-            className={`flex ${msg.senderId === user.uid ? "justify-end" : "justify-start"}`}
-          >
-            <div className={`px-3 py-1 rounded max-w-xs break-words ${
-              msg.senderId === user.uid ? "bg-blue-400 text-white" : "bg-gray-200 text-gray-900"
-            }`}>
-              {msg.text}
-            </div>
-          </div>
+  key={msg.id}
+  className={`flex ${msg.user_id === user.uid ? "justify-end" : "justify-start"}`}
+>
+  <div className={`px-3 py-1 rounded max-w-xs break-words ${
+    msg.user_id === user.uid ? "bg-blue-400 text-white" : "bg-gray-200 text-gray-900"
+  }`}>
+    {msg.text}
+  </div>
+</div>
+
         ))}
         <div ref={messagesEndRef} />
       </div>

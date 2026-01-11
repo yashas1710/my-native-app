@@ -21,4 +21,12 @@ export default defineConfig({
       },
     },
   },
+  server: {
+    host: true,        // Allow access from localhost & network IPs
+    port: 5173,        // Use this port (or any other free port)
+    strictPort: false, // If port busy, pick another one
+    hmr: {
+      overlay: true,   // Show HMR overlay for errors
+    },
+  },
 })

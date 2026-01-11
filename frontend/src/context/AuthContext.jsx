@@ -1,16 +1,43 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore"; // ✅ add setDoc
+import { auth, db } from "../firebase";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null);        // Firebase Auth user
+  const [profile, setProfile] = useState(null);  // Firestore user profile
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
+    const unsub = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
       setUser(currentUser);
+
+      const userRef = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        // ✅ profile exists → use it
+        setProfile(snap.data());
+      } else {
+        // ✅ profile missing → create it
+        const newProfile = {
+          displayName: currentUser.displayName || "",
+          email: currentUser.email || "",
+          photoURL: currentUser.photoURL || "",
+        };
+        await setDoc(userRef, newProfile, { merge: true });
+        setProfile(newProfile);
+      }
+
       setLoading(false);
     });
 
@@ -21,7 +48,7 @@ export function AuthProvider({ children }) {
     await signOut(auth);
   };
 
-  const value = { user, logout };
+  const value = { user, profile, logout };
 
   return (
     <AuthContext.Provider value={value}>

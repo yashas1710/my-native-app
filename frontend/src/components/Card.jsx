@@ -17,9 +17,7 @@ const getRelativeLabel = (date) => {
   today.setHours(0, 0, 0, 0);
   const target = new Date(date);
   target.setHours(0, 0, 0, 0);
-  const diffDays = Math.round(
-    (target - today) / (1000 * 60 * 60 * 24)
-  );
+  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Tomorrow";
@@ -37,9 +35,13 @@ export default function Card({
   onLeave,
   onEdit,
   onDelete,
-  onChat, // 🔥 passed from parent
+  onChat,
 }) {
   const [participants, setParticipants] = useState([]);
+  const [creator, setCreator] = useState({
+    name: plan.creatorName || "Anonymous",
+    photoURL: plan.creatorPhotoURL || "",
+  });
 
   const startDate =
     plan.startDate?.toDate?.() ??
@@ -49,16 +51,33 @@ export default function Card({
     plan.endDate?.toDate?.() ??
     (plan.endDate ? new Date(plan.endDate) : null);
 
-  // ---------- Real-time participants ----------
+  // fetch creator if missing
+  useEffect(() => {
+    if (plan.creatorName || !plan.createdBy) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", plan.createdBy));
+        if (snap.exists()) {
+          const u = snap.data();
+          setCreator({
+            name: u.displayName || u.name || u.email || "Anonymous",
+            photoURL: u.photoURL || "",
+          });
+        }
+      } catch {
+        setCreator({ name: "Anonymous", photoURL: "" });
+      }
+    })();
+  }, [plan.creatorName, plan.createdBy]);
+
+  // fetch participants
   useEffect(() => {
     if (!plan?.id) return;
-
     const q = query(
       collection(db, "planParticipants"),
       where("plan_id", "==", String(plan.id)),
       orderBy("joined_at", "asc")
     );
-
     const unsub = onSnapshot(q, async (snap) => {
       const data = await Promise.all(
         snap.docs.map(async (d) => {
@@ -77,51 +96,56 @@ export default function Card({
       );
       setParticipants(data);
     });
-
     return () => unsub();
   }, [plan?.id]);
 
   return (
-    <div
-      className={`bg-white rounded shadow p-4 border-l-4 ${
-        isPast ? "border-gray-300" : "border-blue-400"
-      }`}
-    >
-      <h3 className="text-xl font-semibold mb-1">{plan.title}</h3>
-      <p className="text-gray-700 mb-2">{plan.description}</p>
-
-      {(startDate || endDate) && (
-        <p className="text-gray-500 mb-2">
-          <span className="font-medium">
-            {getRelativeLabel(startDate)}
-          </span>{" "}
-          •{" "}
-          {startDate && endDate
-            ? `${startDate.toLocaleString()} → ${endDate.toLocaleString()}`
-            : ""}
-        </p>
-      )}
-
-      <div className="flex items-center gap-2 mb-3">
-        {plan.creatorPhotoURL && (
-          <img
-            src={plan.creatorPhotoURL}
-            alt={plan.creatorName}
-            className="w-8 h-8 rounded-full"
-          />
-        )}
-        <span className="text-sm text-gray-600">
-          Created by{" "}
-          <span className="font-medium">
-            {plan.creatorName || "Anonymous"}
-          </span>
+    <div className="relative bg-white rounded-lg shadow-md hover:shadow-lg transition p-5 border border-gray-200">
+      {/* Header with badge */}
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold">{plan.title}</h3>
+        <span
+          className={`px-2 py-1 text-xs rounded-full ${
+            isPast ? "bg-gray-200 text-gray-700" : "bg-green-200 text-green-800"
+          }`}
+        >
+          {isPast ? "Past Plan" : "Active Plan"}
         </span>
       </div>
 
-      <div className="mb-3">
-        <p className="text-sm font-medium text-gray-600 mb-1">
-          Participants:
+      {/* Description */}
+      {plan.description && (
+        <p className="text-gray-700 mb-2">{plan.description}</p>
+      )}
+
+      {/* Dates */}
+      {(startDate || endDate) && (
+        <p className="text-gray-500 mb-2 text-sm">
+          <span className="font-medium">{getRelativeLabel(startDate)}</span>{" "}
+          •{" "}
+          {startDate && endDate
+            ? `${startDate.toLocaleString()} → ${endDate.toLocaleString()}`
+            : startDate?.toLocaleString()}
         </p>
+      )}
+
+      {/* Creator */}
+      <div className="flex items-center gap-2 mb-3">
+        {creator.photoURL && (
+          <img
+            src={creator.photoURL}
+            alt={creator.name}
+            className="w-7 h-7 rounded-full"
+          />
+        )}
+        <span className="text-sm text-gray-600">
+          Created by <span className="font-medium">{creator.name}</span>
+        </span>
+      </div>
+
+      {/* Participants */}
+      <div className="mb-3">
+        <p className="text-sm font-medium text-gray-600 mb-1">Participants:</p>
         {participants.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {participants.map((p, i) => (
@@ -133,6 +157,7 @@ export default function Card({
                   <img
                     src={p.photoURL}
                     className="w-4 h-4 rounded-full"
+                    alt={p.name}
                   />
                 ) : (
                   <div className="w-4 h-4 rounded-full bg-gray-300" />
@@ -146,6 +171,7 @@ export default function Card({
         )}
       </div>
 
+      {/* Action buttons */}
       {!isPast && (
         <div className="flex gap-2 flex-wrap mt-4">
           {isCreator && (
@@ -156,23 +182,16 @@ export default function Card({
               </Button>
             </>
           )}
-
           {!isCreator && !hasJoined && (
             <Button onClick={onJoin}>I’m In</Button>
           )}
-
           {!isCreator && hasJoined && (
             <Button variant="danger" onClick={onLeave}>
               Leave Plan
             </Button>
           )}
-
-          {/* ✅ CHAT BUTTON */}
           {hasJoined && typeof onChat === "function" && (
-            <Button
-              variant="secondary"
-              onClick={() => onChat(plan.id)}
-            >
+            <Button variant="secondary" onClick={() => onChat(plan.id)}>
               Chat
             </Button>
           )}
@@ -180,7 +199,7 @@ export default function Card({
       )}
 
       {isPast && (
-        <p className="text-gray-500 mt-3 font-medium">
+        <p className="text-gray-500 mt-3 text-sm italic">
           This plan has ended.
         </p>
       )}

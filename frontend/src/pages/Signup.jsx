@@ -20,25 +20,27 @@ export default function Signup() {
     try {
       setLoading(true);
 
-      // 1️⃣ Create user in Firebase Auth
+      // 1️Create user in Firebase Auth
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
-      // 2️⃣ Generate random avatar URL
+      // 2️ Generate random avatar URL (for testing)
       const randomAvatar = `https://avatars.dicebear.com/api/identicon/${userCred.user.uid}.svg`;
 
-      // 3️⃣ Update displayName & photoURL
-      await updateProfile(auth.currentUser, {
-        displayName: fullName,
-        photoURL: randomAvatar,
-      });
+      // 3️ Update displayName only (no photo)
+await updateProfile(auth.currentUser, {
+  displayName: fullName,
+  
+});
 
-      // 4️⃣ Create user document in Firestore
-      await setDoc(doc(db, "users", userCred.user.uid), {
-        displayName: fullName,
-        email,
-        photoURL: randomAvatar,
-        createdAt: serverTimestamp(),
-      });
+// 4️⃣ Create user document in Firestore
+await setDoc(doc(db, "users", userCred.user.uid), {
+  displayName: fullName,
+  email,
+  accommodation: "Building A",
+  bio: "",
+  createdAt: serverTimestamp(),
+});
+
 
       toast.success("Account created successfully ✅");
       navigate("/login");

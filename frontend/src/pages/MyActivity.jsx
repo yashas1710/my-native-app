@@ -17,7 +17,6 @@ import toast from "react-hot-toast";
 export default function MyActivity() {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const [createdPlans, setCreatedPlans] = useState([]);
   const [joinedPlans, setJoinedPlans] = useState([]);
   const [joinedPlanIds, setJoinedPlanIds] = useState([]);
@@ -27,28 +26,38 @@ export default function MyActivity() {
     if (!user) return;
 
     const fetchCreatedPlans = async () => {
-      const q = query(
-        collection(db, "plans"),
-        where("createdBy", "==", user.uid)
-      );
+      const q = query(collection(db, "plans"), where("createdBy", "==", user.uid));
       const snap = await getDocs(q);
+      const plans = [];
 
-      return Promise.all(
-        snap.docs.map(async (d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            ...data,
-          };
-        })
-      );
+      for (const d of snap.docs) {
+        const planData = d.data();
+        let creatorName = "Anonymous";
+        let creatorPhotoURL = "";
+        try {
+          const uSnap = await getDoc(doc(db, "users", planData.createdBy));
+          if (uSnap.exists()) {
+            const u = uSnap.data();
+            creatorName = u.displayName || "Anonymous";
+            creatorPhotoURL = u.photoURL || "";
+          }
+        } catch (e) {
+          console.warn("Error fetching creator:", e);
+        }
+
+        plans.push({
+          id: d.id,
+          ...planData,
+          creatorName,
+          creatorPhotoURL,
+        });
+      }
+
+      return plans;
     };
 
     const fetchJoinedPlans = async () => {
-      const q = query(
-        collection(db, "planParticipants"),
-        where("user_id", "==", user.uid)
-      );
+      const q = query(collection(db, "planParticipants"), where("user_id", "==", user.uid));
       const snap = await getDocs(q);
 
       const plans = [];
@@ -56,25 +65,36 @@ export default function MyActivity() {
 
       for (const d of snap.docs) {
         const p = d.data();
-        const planId = String(p.plan_id);
+        let planSnap;
+        try {
+          if (typeof p.plan_id === "string") {
+            planSnap = await getDoc(doc(db, "plans", p.plan_id));
+            joinedIds.push(String(p.plan_id));
+          } else if (p.plan_id && p.plan_id.id) {
+            planSnap = await getDoc(p.plan_id);
+            joinedIds.push(String(planSnap.id));
+          } else {
+            continue;
+          }
+        } catch (e) {
+          console.error("Error resolving plan:", e);
+          continue;
+        }
 
-        const planSnap = await getDoc(doc(db, "plans", planId));
-        if (!planSnap.exists()) continue;
-
-        joinedIds.push(planId);
+        if (!planSnap?.exists()) continue;
 
         const planData = planSnap.data();
-
-        // creator info
         let creatorName = "Anonymous";
         let creatorPhotoURL = "";
-
-        if (planData.createdBy) {
-          const u = await getDoc(doc(db, "users", planData.createdBy));
-          if (u.exists()) {
-            creatorName = u.data().displayName || "Anonymous";
-            creatorPhotoURL = u.data().photoURL || "";
+        try {
+          const uSnap = await getDoc(doc(db, "users", planData.createdBy));
+          if (uSnap.exists()) {
+            const u = uSnap.data();
+            creatorName = u.displayName || "Anonymous";
+            creatorPhotoURL = u.photoURL || "";
           }
+        } catch (e) {
+          console.warn("Error fetching creator:", e);
         }
 
         plans.push({
@@ -93,7 +113,6 @@ export default function MyActivity() {
       try {
         const created = await fetchCreatedPlans();
         const joined = await fetchJoinedPlans();
-
         setCreatedPlans(created);
         setJoinedPlans(joined);
       } catch (err) {
@@ -108,9 +127,7 @@ export default function MyActivity() {
   const handleDelete = async (planId) => {
     try {
       await deleteDoc(doc(db, "plans", planId));
-      setCreatedPlans((prev) =>
-        prev.filter((p) => p.id !== planId)
-      );
+      setCreatedPlans((prev) => prev.filter((p) => p.id !== planId));
       toast.success("Plan deleted ✅");
     } catch (err) {
       console.error(err);
@@ -122,24 +139,14 @@ export default function MyActivity() {
     try {
       const q = query(
         collection(db, "planParticipants"),
-        where("plan_id", "==", planId),
+        where("plan_id", "==", String(planId)),
         where("user_id", "==", user.uid)
       );
       const snap = await getDocs(q);
+      await Promise.all(snap.docs.map((d) => deleteDoc(doc(db, "planParticipants", d.id))));
 
-      await Promise.all(
-        snap.docs.map((d) =>
-          deleteDoc(doc(db, "planParticipants", d.id))
-        )
-      );
-
-      setJoinedPlans((prev) =>
-        prev.filter((p) => p.id !== planId)
-      );
-      setJoinedPlanIds((prev) =>
-        prev.filter((id) => id !== planId)
-      );
-
+      setJoinedPlans((prev) => prev.filter((p) => p.id !== planId));
+      setJoinedPlanIds((prev) => prev.filter((id) => String(id) !== String(planId)));
       toast.success("Left plan ✅");
     } catch (err) {
       console.error(err);
@@ -147,64 +154,45 @@ export default function MyActivity() {
     }
   };
 
-  if (!user)
-    return <p className="p-6">Please log in to view your activity.</p>;
-
-  if (loading)
-    return <p className="p-6">Loading your activity...</p>;
+  if (!user) return <p className="p-6">Please log in to view your activity.</p>;
+  if (loading) return <p className="p-6">Loading your activity...</p>;
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6 text-brand-dark">
-        My Activity
-      </h1>
+      <h1 className="text-3xl font-bold mb-6">My Activity</h1>
 
-      {/* Created Plans */}
-      <h2 className="text-xl font-semibold mb-4 text-brand">
-        Created Plans
-      </h2>
-
+      <h2 className="text-xl font-semibold mb-4">Created Plans</h2>
       {createdPlans.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2">
           {createdPlans.map((plan) => (
             <Card
               key={plan.id}
               plan={plan}
-              isCreator
-              hasJoined={joinedPlanIds.includes(plan.id)}
+              isCreator={true} // ✅ show edit/delete
               onEdit={() => navigate(`/edit-plan/${plan.id}`)}
               onDelete={() => handleDelete(plan.id)}
-              onChat={(id) => navigate(`/chat/${id}`)} // ✅ WORKS
             />
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 mb-8">
-          You haven’t created any plans yet.
-        </p>
+        <p className="text-gray-500 mb-8">You haven’t created any plans yet.</p>
       )}
 
-      {/* Joined Plans */}
-      <h2 className="text-xl font-semibold mb-4 text-brand mt-8">
-        Joined Plans
-      </h2>
-
+      <h2 className="text-xl font-semibold mb-4 mt-8">Joined Plans</h2>
       {joinedPlans.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2">
           {joinedPlans.map((plan) => (
             <Card
               key={plan.id}
               plan={plan}
-              hasJoined
+              isCreator={false}
+              hasJoined={joinedPlanIds.includes(String(plan.id))}
               onLeave={() => handleLeave(plan.id)}
-              onChat={(id) => navigate(`/chat/${id}`)} // ✅ WORKS
             />
           ))}
         </div>
       ) : (
-        <p className="text-gray-500">
-          You haven’t joined any plans yet.
-        </p>
+        <p className="text-gray-500">You haven’t joined any plans yet.</p>
       )}
     </div>
   );
