@@ -1,4 +1,3 @@
-// src/pages/CreatePlan.jsx
 import { useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
@@ -52,64 +51,83 @@ export default function CreatePlan() {
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white p-6">
       <Toaster position="top-right" reverseOrder={false} />
-      <h1 className="text-2xl font-bold mb-4">Create Plan</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+        Create a Plan
+      </h1>
 
       <form onSubmit={handleCreate} className="space-y-4">
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full border rounded p-2"
-          required
-        />
-        <textarea
-          placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full border rounded p-2"
-        />
-        <input
-          type="text"
-          placeholder="Location"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="w-full border rounded p-2"
-          required
-        />
-        <label>
-          Start Time
+        <div>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">Title</label>
+          <input
+            type="text"
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">Description (optional)</label>
+          <textarea
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">Location</label>
+          <input
+            type="text"
+            placeholder="Location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">Start Time</label>
           <input
             type="datetime-local"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full border rounded p-2"
+            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
             required
           />
-        </label>
-        <label>
-          End Time (optional)
+        </div>
+
+        <div>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">End Time (optional)</label>
           <input
             type="datetime-local"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-full border rounded p-2"
+            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
           />
-        </label>
-        <input
-          type="number"
-          placeholder="Max Spots (optional)"
-          value={maxSpots}
-          onChange={(e) => setMaxSpots(e.target.value)}
-          className="w-full border rounded p-2"
-          min={1}
-        />
+        </div>
+
+        <div>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">Max Spots (optional)</label>
+          <input
+            type="number"
+            placeholder="Max Spots"
+            value={maxSpots}
+            onChange={(e) => setMaxSpots(e.target.value)}
+            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            min={1}
+          />
+        </div>
 
         <button
           type="submit"
-          className={`bg-brand-dark text-white px-4 py-2 rounded w-full ${
+          className={`bg-blue-500 dark:bg-blue-600 text-white px-4 py-2 rounded w-full ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
           disabled={loading}

@@ -44,14 +44,11 @@ export default function Card({
   });
 
   const startDate =
-    plan.startDate?.toDate?.() ??
-    (plan.startDate ? new Date(plan.startDate) : null);
+    plan.startDate?.toDate?.() ?? (plan.startDate ? new Date(plan.startDate) : null);
 
   const endDate =
-    plan.endDate?.toDate?.() ??
-    (plan.endDate ? new Date(plan.endDate) : null);
+    plan.endDate?.toDate?.() ?? (plan.endDate ? new Date(plan.endDate) : null);
 
-  // fetch creator if missing
   useEffect(() => {
     if (plan.creatorName || !plan.createdBy) return;
     (async () => {
@@ -70,7 +67,6 @@ export default function Card({
     })();
   }, [plan.creatorName, plan.createdBy]);
 
-  // fetch participants
   useEffect(() => {
     if (!plan?.id) return;
     const q = query(
@@ -100,13 +96,15 @@ export default function Card({
   }, [plan?.id]);
 
   return (
-    <div className="relative bg-white rounded-lg shadow-md hover:shadow-lg transition p-5 border border-gray-200">
+    <div className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-md hover:shadow-lg transition-colors duration-300 p-5 border border-gray-200 dark:border-gray-700">
       {/* Header with badge */}
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-semibold">{plan.title}</h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-semibold truncate">{plan.title}</h3>
         <span
           className={`px-2 py-1 text-xs rounded-full ${
-            isPast ? "bg-gray-200 text-gray-700" : "bg-green-200 text-green-800"
+            isPast
+              ? "bg-gray-200 text-gray-700"
+              : "bg-green-200 text-green-800 dark:bg-green-700 dark:text-green-200"
           }`}
         >
           {isPast ? "Past Plan" : "Active Plan"}
@@ -115,14 +113,15 @@ export default function Card({
 
       {/* Description */}
       {plan.description && (
-        <p className="text-gray-700 mb-2">{plan.description}</p>
+        <p className="text-gray-700 dark:text-gray-300 mb-3 line-clamp-3">
+          {plan.description}
+        </p>
       )}
 
       {/* Dates */}
       {(startDate || endDate) && (
-        <p className="text-gray-500 mb-2 text-sm">
-          <span className="font-medium">{getRelativeLabel(startDate)}</span>{" "}
-          •{" "}
+        <p className="text-gray-500 dark:text-gray-400 mb-3 text-sm">
+          <span className="font-medium">{getRelativeLabel(startDate)}</span> •{" "}
           {startDate && endDate
             ? `${startDate.toLocaleString()} → ${endDate.toLocaleString()}`
             : startDate?.toLocaleString()}
@@ -130,44 +129,48 @@ export default function Card({
       )}
 
       {/* Creator */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-4">
         {creator.photoURL && (
           <img
             src={creator.photoURL}
             alt={creator.name}
-            className="w-7 h-7 rounded-full"
+            className="w-8 h-8 rounded-full object-cover"
           />
         )}
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
           Created by <span className="font-medium">{creator.name}</span>
         </span>
       </div>
 
       {/* Participants */}
-      <div className="mb-3">
-        <p className="text-sm font-medium text-gray-600 mb-1">Participants:</p>
+      <div className="mb-4">
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+          Participants:
+        </p>
         {participants.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {participants.map((p, i) => (
               <span
                 key={i}
-                className="px-2 py-1 text-xs bg-gray-100 rounded flex items-center gap-1"
+                className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded flex items-center gap-1"
               >
                 {p.photoURL ? (
                   <img
                     src={p.photoURL}
-                    className="w-4 h-4 rounded-full"
+                    className="w-4 h-4 rounded-full object-cover"
                     alt={p.name}
                   />
                 ) : (
-                  <div className="w-4 h-4 rounded-full bg-gray-300" />
+                  <div className="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600" />
                 )}
-                {p.name}
+                <span className="truncate">{p.name}</span>
               </span>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-400">No participants yet</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            No participants yet
+          </p>
         )}
       </div>
 
@@ -182,9 +185,7 @@ export default function Card({
               </Button>
             </>
           )}
-          {!isCreator && !hasJoined && (
-            <Button onClick={onJoin}>I’m In</Button>
-          )}
+          {!isCreator && !hasJoined && <Button onClick={onJoin}>I’m In</Button>}
           {!isCreator && hasJoined && (
             <Button variant="danger" onClick={onLeave}>
               Leave Plan
@@ -199,7 +200,7 @@ export default function Card({
       )}
 
       {isPast && (
-        <p className="text-gray-500 mt-3 text-sm italic">
+        <p className="text-gray-500 dark:text-gray-400 mt-3 text-sm italic">
           This plan has ended.
         </p>
       )}

@@ -16,6 +16,7 @@ export default function Chat({ planId, onClose }) {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
+  // Fetch messages from Firestore when the planId changes
   useEffect(() => {
     if (!planId) return;
     const q = query(
@@ -28,56 +29,65 @@ export default function Chat({ planId, onClose }) {
     return () => unsub();
   }, [planId]);
 
+  // Handle sending a new message to Firestore
   const handleSend = async () => {
-  if (!newMessage.trim()) return;
-  await addDoc(collection(db, "plans", planId, "messages"), {
-    text: newMessage,
-    user_id: user.uid,        // match Firestore rules
-    createdAt: serverTimestamp(),
-  });
-  setNewMessage("");
-};
+    if (!newMessage.trim()) return; // Don't send empty messages
+    await addDoc(collection(db, "plans", planId, "messages"), {
+      text: newMessage,
+      user_id: user.uid,        // match Firestore rules
+      createdAt: serverTimestamp(),
+    });
+    setNewMessage(""); // Clear the input field after sending
+  };
 
-
+  // Scroll to the bottom when a new message is added
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(scrollToBottom, [messages]);
 
   return (
-    <div className="fixed bottom-0 right-0 w-full md:w-96 bg-white border-t border-gray-300 flex flex-col p-4 shadow-lg z-50">
+    <div className="fixed bottom-0 right-0 w-full md:w-96 bg-white border-t border-gray-300 flex flex-col p-4 shadow-lg z-50 dark:bg-gray-800 dark:border-gray-700">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="font-semibold">Chat</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white">Chat</h3>
         <button onClick={onClose} className="text-red-500 font-bold">✕</button>
       </div>
 
+      {/* Messages container */}
       <div className="flex-1 overflow-y-auto mb-2 space-y-2 max-h-80">
         {messages.map((msg) => (
           <div
-  key={msg.id}
-  className={`flex ${msg.user_id === user.uid ? "justify-end" : "justify-start"}`}
->
-  <div className={`px-3 py-1 rounded max-w-xs break-words ${
-    msg.user_id === user.uid ? "bg-blue-400 text-white" : "bg-gray-200 text-gray-900"
-  }`}>
-    {msg.text}
-  </div>
-</div>
-
+            key={msg.id}
+            className={`flex ${msg.user_id === user.uid ? "justify-end" : "justify-start"}`}
+          >
+            <div className={`px-3 py-1 rounded max-w-xs break-words ${
+              msg.user_id === user.uid 
+                ? "bg-blue-400 text-white" 
+                : "bg-gray-200 text-gray-900 dark:bg-gray-600 dark:text-gray-100"
+            }`}>
+              {msg.text}
+            </div>
+          </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Message input and send button */}
       <div className="flex gap-2">
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 border rounded px-3 py-2"
+          className="flex-1 border rounded px-3 py-2 dark:bg-gray-700 dark:text-white dark:border-gray-600"
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
         />
-        <button onClick={handleSend} className="bg-blue-500 text-white px-4 py-2 rounded">Send</button>
+        <button
+          onClick={handleSend}
+          className="bg-blue-500 text-white px-4 py-2 rounded dark:bg-blue-600"
+        >
+          Send
+        </button>
       </div>
     </div>
   );

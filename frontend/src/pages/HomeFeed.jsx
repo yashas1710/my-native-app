@@ -1,4 +1,3 @@
-// src/pages/HomeFeed.jsx
 import { useEffect, useState } from "react";
 import {
   collection,
@@ -85,25 +84,31 @@ export default function HomeFeed() {
     fetchJoined();
   }, [user]);
 
-  const handleJoin = async (planId) => {
+  const handleJoin = async (plan) => {
     try {
       const existsQ = query(
         collection(db, "planParticipants"),
-        where("plan_id", "==", String(planId)),
+        where("plan_id", "==", String(plan.id)),
         where("user_id", "==", user.uid)
       );
       const existsSnap = await getDocs(existsQ);
-      if (!existsSnap.empty) return toast("Already joined", { icon: "ℹ️" });
+      if (!existsSnap.empty) {
+        return toast("Already joined", { icon: "ℹ️" });
+      }
+
+      if (plan.max_spots && plan.currentCount >= plan.max_spots) {
+        return toast.error("Plan is full ❌");
+      }
 
       await addDoc(collection(db, "planParticipants"), {
-        plan_id: String(planId),
+        plan_id: String(plan.id),
         user_id: user.uid,
         email: user.email || "",
         name: user.displayName || "",
         photoURL: user.photoURL || "",
         joined_at: serverTimestamp(),
       });
-      setJoinedPlanIds((prev) => [...prev, String(planId)]);
+      setJoinedPlanIds((prev) => [...prev, String(plan.id)]);
       toast.success("Joined plan ✅");
     } catch (err) {
       console.error(err);
@@ -143,10 +148,14 @@ export default function HomeFeed() {
   if (loading) return <p className="p-6">Loading plans...</p>;
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6 text-brand-dark">Home Feed</h1>
+    <div className="p-7 bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300">
+      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        Home Feed
+      </h1>
 
-      <h2 className="text-2xl font-semibold mb-4 text-green-700">Active Plans</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-green-700 dark:text-green-300">
+        Active Plans
+      </h2>
       {activePlans.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
           {activePlans.map((plan) => (
@@ -155,7 +164,7 @@ export default function HomeFeed() {
               plan={plan}
               isCreator={user?.uid === plan.createdBy}
               hasJoined={joinedPlanIds.includes(String(plan.id))}
-              onJoin={() => handleJoin(plan.id)}
+              onJoin={() => handleJoin(plan)}
               onLeave={() => handleLeave(plan.id)}
               onEdit={() => navigate(`/edit-plan/${plan.id}`)}
               onDelete={() => handleDelete(plan.id)}
@@ -163,10 +172,14 @@ export default function HomeFeed() {
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 mb-8">No active plans right now.</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-8">
+          No active plans right now.
+        </p>
       )}
 
-      <h2 className="text-2xl font-semibold mb-4 text-gray-700">Past Plans</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-700 dark:text-gray-300">
+        Past Plans
+      </h2>
       {pastPlans.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {pastPlans.map((plan) => (
@@ -182,7 +195,7 @@ export default function HomeFeed() {
           ))}
         </div>
       ) : (
-        <p className="text-gray-500">No past plans yet.</p>
+        <p className="text-gray-500 dark:text-gray-400">No past plans yet.</p>
       )}
     </div>
   );
