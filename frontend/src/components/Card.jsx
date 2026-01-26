@@ -1,3 +1,4 @@
+// src/components/Card.jsx
 import { useEffect, useState } from "react";
 import Button from "./Button";
 import {
@@ -26,8 +27,17 @@ const getRelativeLabel = (date) => {
   return `${Math.abs(diffDays)} days ago`;
 };
 
+const formatDate = (d) =>
+  d
+    ? new Date(d).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "";
+
 export default function Card({
   plan,
+  creator,
   isPast = false,
   isCreator = false,
   hasJoined = false,
@@ -38,34 +48,12 @@ export default function Card({
   onChat,
 }) {
   const [participants, setParticipants] = useState([]);
-  const [creator, setCreator] = useState({
-    name: plan.creatorName || "Anonymous",
-    photoURL: plan.creatorPhotoURL || "",
-  });
 
   const startDate =
     plan.startDate?.toDate?.() ?? (plan.startDate ? new Date(plan.startDate) : null);
 
   const endDate =
     plan.endDate?.toDate?.() ?? (plan.endDate ? new Date(plan.endDate) : null);
-
-  useEffect(() => {
-    if (plan.creatorName || !plan.createdBy) return;
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, "users", plan.createdBy));
-        if (snap.exists()) {
-          const u = snap.data();
-          setCreator({
-            name: u.displayName || u.name || u.email || "Anonymous",
-            photoURL: u.photoURL || "",
-          });
-        }
-      } catch {
-        setCreator({ name: "Anonymous", photoURL: "" });
-      }
-    })();
-  }, [plan.creatorName, plan.createdBy]);
 
   useEffect(() => {
     if (!plan?.id) return;
@@ -82,7 +70,7 @@ export default function Card({
             const uSnap = await getDoc(doc(db, "users", p.user_id));
             const u = uSnap.exists() ? uSnap.data() : {};
             return {
-              name: u.displayName || p.email || "Unknown",
+              name: u.displayName || u.fullName || p.email || "Unknown",
               photoURL: u.photoURL || "",
             };
           } catch {
@@ -96,8 +84,8 @@ export default function Card({
   }, [plan?.id]);
 
   return (
-    <div className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-md hover:shadow-lg transition-colors duration-300 p-5 border border-gray-200 dark:border-gray-700">
-      {/* Header with badge */}
+    <div className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:-translate-y-1 transition-transform duration-300">
+      {/* Header */}
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-lg font-semibold truncate">{plan.title}</h3>
         <span
@@ -113,7 +101,7 @@ export default function Card({
 
       {/* Description */}
       {plan.description && (
-        <p className="text-gray-700 dark:text-gray-300 mb-3 line-clamp-3">
+        <p className="text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">
           {plan.description}
         </p>
       )}
@@ -123,41 +111,43 @@ export default function Card({
         <p className="text-gray-500 dark:text-gray-400 mb-3 text-sm">
           <span className="font-medium">{getRelativeLabel(startDate)}</span> •{" "}
           {startDate && endDate
-            ? `${startDate.toLocaleString()} → ${endDate.toLocaleString()}`
-            : startDate?.toLocaleString()}
+            ? `${formatDate(startDate)} → ${formatDate(endDate)}`
+            : formatDate(startDate)}
         </p>
       )}
 
       {/* Creator */}
       <div className="flex items-center gap-2 mb-4">
-        {creator.photoURL && (
+        {creator?.photoURL ? (
           <img
             src={creator.photoURL}
             alt={creator.name}
-            className="w-8 h-8 rounded-full object-cover"
+            className="w-9 h-9 rounded-full object-cover border border-gray-300 dark:border-gray-600"
           />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600" />
         )}
         <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
-          Created by <span className="font-medium">{creator.name}</span>
+          Created by <span className="font-medium">{creator?.name}</span>
         </span>
       </div>
 
       {/* Participants */}
       <div className="mb-4">
         <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-          Participants:
+          Participants ({participants.length})
         </p>
         {participants.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {participants.map((p, i) => (
               <span
                 key={i}
-                className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded flex items-center gap-1"
+                className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded flex items-center gap-1 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
               >
                 {p.photoURL ? (
                   <img
                     src={p.photoURL}
-                    className="w-4 h-4 rounded-full object-cover"
+                    className="w-4 h-4 rounded-full"
                     alt={p.name}
                   />
                 ) : (
@@ -168,36 +158,35 @@ export default function Card({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500">
+          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
             No participants yet
           </p>
         )}
       </div>
 
-      {/* Action buttons */}
-      {!isPast && (
-        <div className="flex gap-2 flex-wrap mt-4">
-          {isCreator && (
-            <>
-              <Button onClick={onEdit}>Edit</Button>
-              <Button variant="danger" onClick={onDelete}>
-                Delete
-              </Button>
-            </>
-          )}
-          {!isCreator && !hasJoined && <Button onClick={onJoin}>I’m In</Button>}
-          {!isCreator && hasJoined && (
-            <Button variant="danger" onClick={onLeave}>
-              Leave Plan
+      {/* Actions */}
+      <div className="flex gap-2 flex-wrap mt-4">
+        {isCreator && (
+          <>
+            <Button onClick={onEdit}>Edit</Button>
+            <Button variant="danger" onClick={onDelete}>
+              Delete
             </Button>
-          )}
-          {hasJoined && typeof onChat === "function" && (
-            <Button variant="secondary" onClick={() => onChat(plan.id)}>
-              Chat
-            </Button>
-          )}
-        </div>
-      )}
+          </>
+        )}
+        {!isCreator && !hasJoined && <Button onClick={onJoin}>I’m In</Button>}
+        {!isCreator && hasJoined && (
+          <Button variant="danger" onClick={onLeave}>
+            Leave Plan
+          </Button>
+        )}
+        {/* ✅ Chat button for both creator and participants */}
+        {(isCreator || hasJoined) && onChat && (
+          <Button variant="secondary" onClick={() => onChat(plan.id)}>
+            💬 Chat
+          </Button>
+        )}
+      </div>
 
       {isPast && (
         <p className="text-gray-500 dark:text-gray-400 mt-3 text-sm italic">

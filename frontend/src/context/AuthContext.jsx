@@ -1,6 +1,7 @@
+// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore"; // ✅ add setDoc
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 const AuthContext = createContext(null);
@@ -28,9 +29,9 @@ export function AuthProvider({ children }) {
         // ✅ profile exists → use it
         setProfile(snap.data());
       } else {
-        // ✅ profile missing → create it
+        // ✅ profile missing → create it with fullName
         const newProfile = {
-          displayName: currentUser.displayName || "",
+          fullName: currentUser.displayName || "",   // ✅ use fullName key
           email: currentUser.email || "",
           photoURL: currentUser.photoURL || "",
         };

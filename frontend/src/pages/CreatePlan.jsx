@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+// src/pages/CreatePlan.jsx
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import toast, { Toaster } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import Spinner from "../components/Spinner";
 
 export default function CreatePlan() {
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -15,126 +17,136 @@ export default function CreatePlan() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [maxSpots, setMaxSpots] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState({});
+
+  // Fetch user profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists()) setProfile(snap.data());
+    };
+    fetchProfile();
+  }, [user]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!title || !location || !startDate) {
+
+    if (!title.trim() || !location.trim() || !startDate) {
       return toast.error("Title, Location, and Start Time are required");
+    }
+    if (description.length > 300) {
+      return toast.error("Description must be under 300 characters");
+    }
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      return toast.error("End Time must be after Start Time");
+    }
+    if (maxSpots && (Number(maxSpots) < 1 || Number(maxSpots) > 50)) {
+      return toast.error("Max Spots must be between 1 and 50");
     }
 
     try {
-      setLoading(true);
-
+      setSaving(true);
       await addDoc(collection(db, "plans"), {
-        title,
-        description,
-        location,
+        title: title.trim(),
+        description: description.trim(),
+        location: location.trim(),
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null,
         maxSpots: maxSpots ? Number(maxSpots) : null,
         createdBy: user.uid,
-        creatorName: user.displayName || "Anonymous",
-        creatorPhotoURL: user.photoURL,
-        accommodation: user.accommodation || "Building A", // ✅ inherit from user
+        creatorName: profile.fullName || user.displayName || "Unknown",
+        creatorPhotoURL: profile.photoURL || user.photoURL || "",
         createdAt: serverTimestamp(),
       });
-
-      toast.success("Plan created successfully ✅");
-      navigate("/"); // go back to Home Feed
+      toast.success("Plan created ✅");
+      navigate("/activity");
     } catch (err) {
       console.error(err);
       toast.error("Failed to create plan ❌");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-black dark:text-white flex items-center justify-center p-6">
       <Toaster position="top-right" reverseOrder={false} />
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-        Create a Plan
-      </h1>
 
-      <form onSubmit={handleCreate} className="space-y-4">
-        <div>
-          <label className="block mb-2 text-gray-700 dark:text-gray-300">Title</label>
+      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+        <h1 className="text-3xl font-extrabold mb-6 text-center text-blue-600 dark:text-blue-400">
+          🚀 Create a New Plan
+        </h1>
+
+        <form onSubmit={handleCreate} className="space-y-5">
           <input
             type="text"
-            placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+            placeholder="Plan Title"
             required
           />
-        </div>
 
-        <div>
-          <label className="block mb-2 text-gray-700 dark:text-gray-300">Description (optional)</label>
           <textarea
-            placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            maxLength={300}
+            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="Description (max 300 chars)"
           />
-        </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{description.length}/300</p>
 
-        <div>
-          <label className="block mb-2 text-gray-700 dark:text-gray-300">Location</label>
           <input
             type="text"
-            placeholder="Location"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
+            placeholder="Location"
             required
           />
-        </div>
 
-        <div>
-          <label className="block mb-2 text-gray-700 dark:text-gray-300">Start Time</label>
           <input
             type="datetime-local"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
             required
           />
-        </div>
 
-        <div>
-          <label className="block mb-2 text-gray-700 dark:text-gray-300">End Time (optional)</label>
           <input
             type="datetime-local"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
           />
-        </div>
 
-        <div>
-          <label className="block mb-2 text-gray-700 dark:text-gray-300">Max Spots (optional)</label>
           <input
             type="number"
-            placeholder="Max Spots"
             value={maxSpots}
             onChange={(e) => setMaxSpots(e.target.value)}
-            className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 text-black dark:text-white"
+            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-pink-500 outline-none"
+            placeholder="Max Spots (1–50)"
             min={1}
+            max={50}
           />
-        </div>
 
-        <button
-          type="submit"
-          className={`bg-blue-500 dark:bg-blue-600 text-white px-4 py-2 rounded w-full ${
-            loading ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-          disabled={loading}
-        >
-          {loading ? "Creating..." : "Create Plan"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={saving}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-lg w-full shadow-lg hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <Spinner /> <span>Creating...</span>
+              </>
+            ) : (
+              "Create Plan"
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

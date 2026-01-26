@@ -3,7 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Nav() {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth(); // ✅ include profile
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,7 +22,7 @@ export default function Nav() {
 
         {/* Desktop Menu */}
         <div className="hidden md:flex gap-6 font-semibold">
-          {["/home", "/plan/create", "/activity"].map((path, i) => (
+          {["/home", "/plan/create", "/activity", "/profile"].map((path, i) => (
             <NavLink
               key={i}
               to={path}
@@ -32,20 +32,40 @@ export default function Nav() {
                 }`
               }
             >
-              {path === "/home" ? "Home" : path === "/plan/create" ? "Create" : "Activity"}
+              {path === "/home"
+                ? "Home"
+                : path === "/plan/create"
+                ? "Create"
+                : path === "/activity"
+                ? "Activity"
+                : "Profile"}
             </NavLink>
           ))}
         </div>
 
         {/* Desktop Auth */}
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-4">
           {user ? (
-            <button
-              onClick={logout}
-              className="bg-red-500 px-4 py-1 rounded-lg hover:bg-red-600"
-            >
-              Logout
-            </button>
+            <>
+              {/* Show avatar if available */}
+              {profile?.photoURL ? (
+                <img
+                  src={profile.photoURL}
+                  alt="Profile"
+                  className="h-8 w-8 rounded-full object-cover border"
+                />
+              ) : (
+                <Link to="/profile" className="text-sm underline">
+                  Profile
+                </Link>
+              )}
+              <button
+                onClick={logout}
+                className="bg-red-500 px-4 py-1 rounded-lg hover:bg-red-600"
+              >
+                Logout
+              </button>
+            </>
           ) : (
             <Link
               to="/login"
@@ -72,6 +92,7 @@ export default function Nav() {
           <NavLink to="/home" onClick={() => setOpen(false)}>🏠 Home</NavLink>
           <NavLink to="/plan/create" onClick={() => setOpen(false)}>✍️ Create</NavLink>
           <NavLink to="/activity" onClick={() => setOpen(false)}>📊 Activity</NavLink>
+          <NavLink to="/profile" onClick={() => setOpen(false)}>👤 Profile</NavLink>
 
           {user ? (
             <button

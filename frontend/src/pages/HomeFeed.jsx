@@ -4,7 +4,7 @@ import {
   getDocs,
   query,
   where,
-  addDoc,
+  setDoc,
   deleteDoc,
   doc,
   getDoc,
@@ -15,6 +15,7 @@ import Card from "../components/Card";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import Spinner from "../components/Spinner";
 
 export default function HomeFeed() {
   const { user } = useAuth();
@@ -40,7 +41,7 @@ export default function HomeFeed() {
               const userDoc = await getDoc(doc(db, "users", data.createdBy));
               if (userDoc.exists()) {
                 const u = userDoc.data();
-                creatorName = u.displayName || "Anonymous";
+                creatorName = u.displayName || u.fullName || u.email || "Anonymous";
                 creatorPhoto = u.photoURL || "";
               }
             }
@@ -64,7 +65,7 @@ export default function HomeFeed() {
         );
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load plans");
+        toast.error("Failed to load plans ❌");
       } finally {
         setLoading(false);
       }
@@ -86,21 +87,12 @@ export default function HomeFeed() {
 
   const handleJoin = async (plan) => {
     try {
-      const existsQ = query(
-        collection(db, "planParticipants"),
-        where("plan_id", "==", String(plan.id)),
-        where("user_id", "==", user.uid)
-      );
-      const existsSnap = await getDocs(existsQ);
-      if (!existsSnap.empty) {
-        return toast("Already joined", { icon: "ℹ️" });
-      }
+      const participantId = `${plan.id}_${user.uid}`;
+      const participantRef = doc(db, "planParticipants", participantId);
+      const existing = await getDoc(participantRef);
+      if (existing.exists()) return toast("Already joined", { icon: "ℹ️" });
 
-      if (plan.max_spots && plan.currentCount >= plan.max_spots) {
-        return toast.error("Plan is full ❌");
-      }
-
-      await addDoc(collection(db, "planParticipants"), {
+      await setDoc(participantRef, {
         plan_id: String(plan.id),
         user_id: user.uid,
         email: user.email || "",
@@ -108,6 +100,7 @@ export default function HomeFeed() {
         photoURL: user.photoURL || "",
         joined_at: serverTimestamp(),
       });
+
       setJoinedPlanIds((prev) => [...prev, String(plan.id)]);
       toast.success("Joined plan ✅");
     } catch (err) {
@@ -118,13 +111,8 @@ export default function HomeFeed() {
 
   const handleLeave = async (planId) => {
     try {
-      const q = query(
-        collection(db, "planParticipants"),
-        where("plan_id", "==", String(planId)),
-        where("user_id", "==", user.uid)
-      );
-      const snapshot = await getDocs(q);
-      await Promise.all(snapshot.docs.map((d) => deleteDoc(doc(db, "planParticipants", d.id))));
+      const participantId = `${planId}_${user.uid}`;
+      await deleteDoc(doc(db, "planParticipants", participantId));
       setJoinedPlanIds((prev) => prev.filter((id) => String(id) !== String(planId)));
       toast.success("Left plan ✅");
     } catch (err) {
@@ -145,57 +133,63 @@ export default function HomeFeed() {
     }
   };
 
-  if (loading) return <p className="p-6">Loading plans...</p>;
+  if (loading) return <Spinner />;
 
   return (
     <div className="p-7 bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-        Home Feed
-      </h1>
+      <h1 className="text-3xl font-bold mb-6">🏠 Home Feed</h1>
 
-      <h2 className="text-2xl font-semibold mb-4 text-green-700 dark:text-green-300">
-        Active Plans
+      {/* Active Plans */}
+      <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+        🌱 Active Plans
       </h2>
       {activePlans.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
           {activePlans.map((plan) => (
             <Card
               key={plan.id}
               plan={plan}
+              creator={{ name: plan.creatorName, photoURL: plan.creatorPhoto }}
               isCreator={user?.uid === plan.createdBy}
               hasJoined={joinedPlanIds.includes(String(plan.id))}
               onJoin={() => handleJoin(plan)}
               onLeave={() => handleLeave(plan.id)}
               onEdit={() => navigate(`/edit-plan/${plan.id}`)}
               onDelete={() => handleDelete(plan.id)}
+              onChat={(id) => navigate(`/chat/${id}`)}
             />
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 dark:text-gray-400 mb-8">
-          No active plans right now.
+        <p className="text-gray-500 dark:text-gray-400 italic flex items-center gap-2">
+          🌱 No active plans right now. Create one to get started!
         </p>
       )}
 
-      <h2 className="text-2xl font-semibold mb-4 text-gray-700 dark:text-gray-300">
-        Past Plans
+      {/* Past Plans */}
+      <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+        📜 Past Plans
       </h2>
       {pastPlans.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {pastPlans.map((plan) => (
             <Card
               key={plan.id}
               plan={plan}
+              creator={{ name: plan.creatorName, photoURL: plan.creatorPhoto }}
               isCreator={user?.uid === plan.createdBy}
               hasJoined={joinedPlanIds.includes(String(plan.id))}
               isPast
               onEdit={() => navigate(`/edit-plan/${plan.id}`)}
               onDelete={() => handleDelete(plan.id)}
+              onChat={(id) => navigate(`/chat/${id}`)}
             />
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 dark:text-gray-400">No past plans yet.</p>
+        <p className="text-gray-500 dark:text-gray-400 italic flex items-center gap-2">
+          📜 No past plans yet.
+        </p>
       )}
     </div>
   );

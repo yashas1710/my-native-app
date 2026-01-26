@@ -7,7 +7,6 @@ import toast from "react-hot-toast";
 
 export default function Login() {
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +21,15 @@ export default function Login() {
       navigate("/");
     } catch (err) {
       console.error(err);
-      toast.error("Invalid email or password ❌");
+      if (err.code === "auth/user-not-found") {
+        toast.error("No account found with this email ❌");
+      } else if (err.code === "auth/wrong-password") {
+        toast.error("Incorrect password ❌");
+      } else if (err.code === "auth/invalid-email") {
+        toast.error("Invalid email format ❌");
+      } else {
+        toast.error("Login failed ❌");
+      }
     } finally {
       setLoading(false);
     }
