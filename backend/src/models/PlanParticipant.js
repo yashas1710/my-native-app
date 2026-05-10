@@ -1,8 +1,5 @@
-import mongoose from "mongoose";
+import { db } from "../config/firebase.js";
 
-const participantSchema = new mongoose.Schema({
-  plan_id: { type: mongoose.Schema.Types.ObjectId, ref: "Plan" },
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-}, { timestamps: true });
+export const participantsCollection = db.collection("participants");
 
-export default mongoose.model("PlanParticipant", participantSchema);
+export const COLLECTION_NAME = "participants";

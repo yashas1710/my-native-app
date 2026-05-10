@@ -1,10 +1,30 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Loader from "./Loader"; // optional spinner
 
-export default function RequireAuth({ children }) {
-  const { user, loading } = useAuth();
+export default function RequireAuth({
+  children,
+}) {
+  const {
+    loading,
+    isAuthenticated,
+  } = useAuth();
 
-  if (loading) return <Loader />; // 👈 show loader until auth resolves
-  return user ? children : <Navigate to="/login" replace />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg">
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
+  return isAuthenticated ? (
+    children
+  ) : (
+    <Navigate
+      to="/login"
+      replace
+    />
+  );
 }

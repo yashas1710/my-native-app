@@ -1,16 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  setDoc,
-  deleteDoc,
-  doc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../firebase";
+import { plansAPI } from "../api";
 import Card from "../components/Card";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
@@ -23,46 +12,56 @@ export default function HomeFeed() {
 
   const [activePlans, setActivePlans] = useState([]);
   const [pastPlans, setPastPlans] = useState([]);
-  const [joinedPlanIds, setJoinedPlanIds] = useState([]);
+  const [joinedPlanIds, setJoinedPlanIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchPlans = async () => {
+    const fetchData = async () => {
       try {
-        const planSnap = await getDocs(collection(db, "plans"));
-        const plansData = await Promise.all(
-          planSnap.docs.map(async (d) => {
-            const data = d.data();
-            let creatorName = "Anonymous";
-            let creatorPhoto = "";
-            if (data.createdBy) {
-              const userDoc = await getDoc(doc(db, "users", data.createdBy));
-              if (userDoc.exists()) {
-                const u = userDoc.data();
-                creatorName = u.displayName || u.fullName || u.email || "Anonymous";
-                creatorPhoto = u.photoURL || "";
-              }
-            }
-            return { id: d.id, ...data, creatorName, creatorPhoto };
-          })
+        setLoading(true);
+
+        const feedResponse = await plansAPI.getFeed();
+        const plansData = feedResponse.data.plans || [];
+
+        const joinedResponse =
+          await plansAPI.getMyJoinedPlans();
+
+        const joinedPlans =
+          joinedResponse.data.plans || [];
+
+        const joinedIds = new Set(
+          joinedPlans.map((p) => p.id)
         );
 
+        setJoinedPlanIds(joinedIds);
+
         const today = new Date();
-        setActivePlans(
-          plansData.filter((p) => {
-            const start = p.startDate?.toDate?.() ?? new Date(p.startDate);
-            const end = p.endDate?.toDate?.() ?? (p.endDate ? new Date(p.endDate) : null);
-            return start >= today || (!end || end >= today);
-          })
-        );
-        setPastPlans(
-          plansData.filter((p) => {
-            const end = p.endDate?.toDate?.() ?? (p.endDate ? new Date(p.endDate) : null);
-            return end && end < today;
-          })
-        );
+        today.setHours(0, 0, 0, 0);
+
+        const activePlansList = [];
+        const pastPlansList = [];
+
+        plansData.forEach((plan) => {
+          const startDate = new Date(plan.startDate);
+          const endDate = plan.endDate
+            ? new Date(plan.endDate)
+            : null;
+
+          if (
+            startDate >= today ||
+            !endDate ||
+            endDate >= today
+          ) {
+            activePlansList.push(plan);
+          } else {
+            pastPlansList.push(plan);
+          }
+        });
+
+        setActivePlans(activePlansList);
+        setPastPlans(pastPlansList);
       } catch (err) {
         console.error(err);
         toast.error("Failed to load plans ❌");
@@ -71,65 +70,72 @@ export default function HomeFeed() {
       }
     };
 
-    const fetchJoined = async () => {
-      try {
-        const q = query(collection(db, "planParticipants"), where("user_id", "==", user.uid));
-        const snapshot = await getDocs(q);
-        setJoinedPlanIds(snapshot.docs.map((d) => String(d.data().plan_id)));
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchPlans();
-    fetchJoined();
+    fetchData();
   }, [user]);
 
   const handleJoin = async (plan) => {
     try {
-      const participantId = `${plan.id}_${user.uid}`;
-      const participantRef = doc(db, "planParticipants", participantId);
-      const existing = await getDoc(participantRef);
-      if (existing.exists()) return toast("Already joined", { icon: "ℹ️" });
+      if (joinedPlanIds.has(plan.id)) {
+        return toast("Already joined this plan", {
+          icon: "ℹ️",
+        });
+      }
 
-      await setDoc(participantRef, {
-        plan_id: String(plan.id),
-        user_id: user.uid,
-        email: user.email || "",
-        name: user.displayName || "",
-        photoURL: user.photoURL || "",
-        joined_at: serverTimestamp(),
-      });
+      await plansAPI.joinPlan(plan.id);
 
-      setJoinedPlanIds((prev) => [...prev, String(plan.id)]);
+      setJoinedPlanIds(
+        (prev) => new Set([...prev, plan.id])
+      );
+
       toast.success("Joined plan ✅");
     } catch (err) {
+      const message =
+        err.response?.data?.error || err.message;
+
       console.error(err);
-      toast.error("Failed to join plan ❌");
+      toast.error(message + " ❌");
     }
   };
 
   const handleLeave = async (planId) => {
     try {
-      const participantId = `${planId}_${user.uid}`;
-      await deleteDoc(doc(db, "planParticipants", participantId));
-      setJoinedPlanIds((prev) => prev.filter((id) => String(id) !== String(planId)));
+      await plansAPI.leavePlan(planId);
+
+      setJoinedPlanIds((prev) => {
+  const updated = new Set(prev);
+  updated.delete(planId);
+  return updated;
+});
+
       toast.success("Left plan ✅");
     } catch (err) {
+      const message =
+        err.response?.data?.error || err.message;
+
       console.error(err);
-      toast.error("Failed to leave plan ❌");
+      toast.error(message + " ❌");
     }
   };
 
   const handleDelete = async (planId) => {
     try {
-      await deleteDoc(doc(db, "plans", planId));
-      setActivePlans((prev) => prev.filter((p) => p.id !== planId));
-      setPastPlans((prev) => prev.filter((p) => p.id !== planId));
+      await plansAPI.deletePlan(planId);
+
+      setActivePlans((prev) =>
+        prev.filter((p) => p.id !== planId)
+      );
+
+      setPastPlans((prev) =>
+        prev.filter((p) => p.id !== planId)
+      );
+
       toast.success("Plan deleted ✅");
     } catch (err) {
+      const message =
+        err.response?.data?.error || err.message;
+
       console.error(err);
-      toast.error("Failed to delete plan ❌");
+      toast.error(message + " ❌");
     }
   };
 
@@ -137,57 +143,89 @@ export default function HomeFeed() {
 
   return (
     <div className="p-7 bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300">
-      <h1 className="text-3xl font-bold mb-6">🏠 Home Feed</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        🏠 Home Feed
+      </h1>
 
-      {/* Active Plans */}
-      <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+      <h2 className="text-2xl font-semibold mb-4">
         🌱 Active Plans
       </h2>
+
       {activePlans.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
           {activePlans.map((plan) => (
             <Card
               key={plan.id}
               plan={plan}
-              creator={{ name: plan.creatorName, photoURL: plan.creatorPhoto }}
-              isCreator={user?.uid === plan.createdBy}
-              hasJoined={joinedPlanIds.includes(String(plan.id))}
+              creator={{
+                name:
+                  plan.creatorName || "Unknown",
+                photoURL:
+                  plan.creatorPhotoUrl || "",
+              }}
+              isCreator={
+                user?.id === plan.createdBy
+              }
+              hasJoined={joinedPlanIds.has(
+                plan.id
+              )}
               onJoin={() => handleJoin(plan)}
-              onLeave={() => handleLeave(plan.id)}
-              onEdit={() => navigate(`/edit-plan/${plan.id}`)}
-              onDelete={() => handleDelete(plan.id)}
-              onChat={(id) => navigate(`/chat/${id}`)}
+              onLeave={() =>
+                handleLeave(plan.id)
+              }
+              onEdit={() =>
+                navigate(
+                  `/edit-plan/${plan.id}`
+                )
+              }
+              onDelete={() =>
+                handleDelete(plan.id)
+              }
             />
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 dark:text-gray-400 italic flex items-center gap-2">
-          🌱 No active plans right now. Create one to get started!
+        <p className="text-gray-500 italic">
+          🌱 No active plans right now.
         </p>
       )}
 
-      {/* Past Plans */}
-      <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+      <h2 className="text-2xl font-semibold mb-4">
         📜 Past Plans
       </h2>
+
       {pastPlans.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {pastPlans.map((plan) => (
             <Card
               key={plan.id}
               plan={plan}
-              creator={{ name: plan.creatorName, photoURL: plan.creatorPhoto }}
-              isCreator={user?.uid === plan.createdBy}
-              hasJoined={joinedPlanIds.includes(String(plan.id))}
+              creator={{
+                name:
+                  plan.creatorName || "Unknown",
+                photoURL:
+                  plan.creatorPhotoUrl || "",
+              }}
+              isCreator={
+                user?.id === plan.createdBy
+              }
+              hasJoined={joinedPlanIds.has(
+                plan.id
+              )}
               isPast
-              onEdit={() => navigate(`/edit-plan/${plan.id}`)}
-              onDelete={() => handleDelete(plan.id)}
-              onChat={(id) => navigate(`/chat/${id}`)}
+              onEdit={() =>
+                navigate(
+                  `/edit-plan/${plan.id}`
+                )
+              }
+              onDelete={() =>
+                handleDelete(plan.id)
+              }
             />
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 dark:text-gray-400 italic flex items-center gap-2">
+        <p className="text-gray-500 italic">
           📜 No past plans yet.
         </p>
       )}

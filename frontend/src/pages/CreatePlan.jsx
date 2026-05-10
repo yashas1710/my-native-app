@@ -1,8 +1,7 @@
 // src/pages/CreatePlan.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { plansAPI } from "../api";
 import { useAuth } from "../context/AuthContext";
 import toast, { Toaster } from "react-hot-toast";
 import Spinner from "../components/Spinner";
@@ -18,17 +17,6 @@ export default function CreatePlan() {
   const [endDate, setEndDate] = useState("");
   const [maxSpots, setMaxSpots] = useState("");
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState({});
-
-  // Fetch user profile
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return;
-      const snap = await getDoc(doc(db, "users", user.uid));
-      if (snap.exists()) setProfile(snap.data());
-    };
-    fetchProfile();
-  }, [user]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -42,29 +30,26 @@ export default function CreatePlan() {
     if (endDate && new Date(endDate) < new Date(startDate)) {
       return toast.error("End Time must be after Start Time");
     }
-    if (maxSpots && (Number(maxSpots) < 1 || Number(maxSpots) > 50)) {
-      return toast.error("Max Spots must be between 1 and 50");
+    if (maxSpots && (Number(maxSpots) < 1 || Number(maxSpots) > 100)) {
+      return toast.error("Max Spots must be between 1 and 100");
     }
 
     try {
       setSaving(true);
-      await addDoc(collection(db, "plans"), {
+      await plansAPI.createPlan({
         title: title.trim(),
         description: description.trim(),
         location: location.trim(),
-        startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
+        startDate: new Date(startDate).toISOString(),
+        endDate: endDate ? new Date(endDate).toISOString() : null,
         maxSpots: maxSpots ? Number(maxSpots) : null,
-        createdBy: user.uid,
-        creatorName: profile.fullName || user.displayName || "Unknown",
-        creatorPhotoURL: profile.photoURL || user.photoURL || "",
-        createdAt: serverTimestamp(),
       });
       toast.success("Plan created ✅");
       navigate("/activity");
     } catch (err) {
+      const message = err.response?.data?.error || err.message;
       console.error(err);
-      toast.error("Failed to create plan ❌");
+      toast.error(message + " ❌");
     } finally {
       setSaving(false);
     }
@@ -127,9 +112,9 @@ export default function CreatePlan() {
             value={maxSpots}
             onChange={(e) => setMaxSpots(e.target.value)}
             className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-pink-500 outline-none"
-            placeholder="Max Spots (1–50)"
+            placeholder="Max Spots (1–100)"
             min={1}
-            max={50}
+            max={100}
           />
 
           <button

@@ -1,128 +1,53 @@
 import express from "express";
+import PlanController from "../controllers/PlanController.js";
 import auth from "../middleware/auth.js";
-import Plan from "../models/Plan.js";
-import PlanParticipant from "../models/PlanParticipant.js";
-import User from "../models/User.js";
 
 const router = express.Router();
 
-// ✅ Create a new plan
-router.post("/", auth, async (req, res) => {
-  try {
-    const { title, description, datetime, location, max_spots } = req.body;
-    if (!title || !datetime || !location) {
-      return res.status(400).json({ msg: "Title, datetime and location are required" });
-    }
+// CRITICAL: /me routes MUST come BEFORE /:id to prevent route shadowing
 
-    const creator = await User.findById(req.user.id);
-    if (!creator) return res.status(404).json({ msg: "User not found" });
+// Get my created plans (must be BEFORE /:id)
+router.get(
+  "/me/created",
+  auth,
+  (req, res) => PlanController.getMyCreatedPlans(req, res)
+);
 
-    const plan = await Plan.create({
-      title,
-      description,
-      datetime,
-      location,
-      creator_id: req.user.id,
-      max_spots: max_spots ?? null,
-    });
+// Get my joined plans (must be BEFORE /:id)
+router.get(
+  "/me/joined",
+  auth,
+  (req, res) => PlanController.getMyJoinedPlans(req, res)
+);
 
-    res.json({ msg: "Plan created", plan });
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
-  }
-});
+// Get plans for my accommodation (feed)
+router.get("/", auth, (req, res) =>
+  PlanController.getPlansByAccommodation(req, res)
+);
 
-// ✅ Feed: upcoming plans in same accommodation
-router.get("/", auth, async (req, res) => {
-  try {
-    const me = await User.findById(req.user.id).select("accommodation");
-    if (!me) return res.status(404).json({ msg: "User not found" });
+// Create plan
+router.post("/", auth, (req, res) => PlanController.createPlan(req, res));
 
-    const now = new Date();
-    const plans = await Plan.find({ datetime: { $gte: now } })
-      .populate("creator_id", "name photo_url accommodation")
-      .sort({ datetime: 1 });
+// Get plan details (after /me routes)
+router.get("/:id", auth, (req, res) => PlanController.getPlanById(req, res));
 
-    //filter by same accommodation
-    const filtered = plans.filter(
-      (p) => p.creator_id && p.creator_id.accommodation === me.accommodation
-    );
+// Update plan
+router.put("/:id", auth, (req, res) => PlanController.updatePlan(req, res));
 
-    
+// Delete plan
+router.delete("/:id", auth, (req, res) =>
+  PlanController.deletePlan(req, res)
+);
 
-    // count participants
-    const planIds = filtered.map((p) => p._id);
-    const counts = await PlanParticipant.aggregate([
-      { $match: { plan_id: { $in: planIds } } },
-      { $group: { _id: "$plan_id", count: { $sum: 1 } } },
-    ]);
-    const countMap = new Map(counts.map((c) => [String(c._id), c.count]));
+// Join plan
+router.post("/:id/join", auth, (req, res) =>
+  PlanController.joinPlan(req, res)
+);
 
-    const result = filtered.map((p) => ({
-      ...p.toObject(),
-      participants_count: countMap.get(String(p._id)) || 0,
-    }));
-
-    res.json({ plans: result });
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
-  }
-});
-
-// ✅ Plan detail with participants
-router.get("/:id", auth, async (req, res) => {
-  try {
-    const plan = await Plan.findById(req.params.id)
-      .populate("creator_id", "name photo_url accommodation");
-    if (!plan) return res.status(404).json({ msg: "Plan not found" });
-
-    const participants = await PlanParticipant.find({ plan_id: plan._id })
-      .populate("user_id", "name photo_url");
-
-    res.json({ plan, participants });
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
-  }
-});
-
-// ✅ Join plan
-router.post("/:id/join", auth, async (req, res) => {
-  try {
-    const plan = await Plan.findById(req.params.id);
-    if (!plan) return res.status(404).json({ msg: "Plan not found" });
-
-    // already joined?
-    const existing = await PlanParticipant.findOne({
-      plan_id: plan._id,
-      user_id: req.user.id,
-    });
-    if (existing) return res.status(400).json({ msg: "Already joined" });
-
-    // max spots check
-    if (plan.max_spots) {
-      const count = await PlanParticipant.countDocuments({ plan_id: plan._id });
-      if (count >= plan.max_spots) {
-        return res.status(400).json({ msg: "Max spots reached" });
-      }
-    }
-
-    await PlanParticipant.create({ plan_id: plan._id, user_id: req.user.id });
-    res.json({ msg: "Joined" });
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
-  }
-});
-
-// ✅ My activity: plans I created
-router.get("/me/created", auth, async (req, res) => {
-  const plans = await Plan.find({ creator_id: req.user.id }).sort({ datetime: -1 });
-  res.json({ plans });
-});
-
-// ✅ My activity: plans I joined
-router.get("/me/joined", auth, async (req, res) => {
-  const joins = await PlanParticipant.find({ user_id: req.user.id }).populate("plan_id");
-  res.json({ plans: joins.map((j) => j.plan_id).filter(Boolean) });
-});
+// Leave plan
+router.post("/:id/leave", auth, (req, res) =>
+  PlanController.leavePlan(req, res)
+);
 
 export default router;
+

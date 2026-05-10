@@ -4,14 +4,14 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Layout from "./components/Layout.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
-import Chat from "./pages/Chat";
-import Profile from "./pages/Profile";
+const Chat = lazy(() => import("./pages/Chat"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 // Lazy-loaded pages
-const HomeFeed = lazy(() => import("./pages/HomeFeed.jsx"));
-const Signup = lazy(() => import("./pages/Signup.jsx"));
-const Login = lazy(() => import("./pages/Login.jsx"));
-const CreatePlan = lazy(() => import("./pages/CreatePlan.jsx"));
+import HomeFeed from "./pages/HomeFeed.jsx";
+import Signup from "./pages/Signup.jsx";
+import Login from "./pages/Login.jsx";
+import CreatePlan from "./pages/CreatePlan.jsx";
 const PlanDetail = lazy(() => import("./pages/PlanDetail.jsx"));
 const MyActivity = lazy(() => import("./pages/MyActivity.jsx"));
 const EditPlan = lazy(() => import("./pages/EditPlan.jsx"));
@@ -47,8 +47,15 @@ export default function App() {
       </header>
 
       <main>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Toaster position="top-right" reverseOrder={false} />
+<Suspense
+  fallback={
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-lg font-medium">
+        Loading...
+      </div>
+    </div>
+  }
+>          <Toaster position="top-right" reverseOrder={false} />
 
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />

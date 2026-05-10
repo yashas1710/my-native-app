@@ -1,12 +1,12 @@
 // src/pages/Login.jsx
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,20 +16,24 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log('🚀 Starting login process...');
+      await login(email, password);
       toast.success("Logged in successfully ✅");
       navigate("/");
     } catch (err) {
-      console.error(err);
-      if (err.code === "auth/user-not-found") {
-        toast.error("No account found with this email ❌");
-      } else if (err.code === "auth/wrong-password") {
-        toast.error("Incorrect password ❌");
-      } else if (err.code === "auth/invalid-email") {
-        toast.error("Invalid email format ❌");
-      } else {
-        toast.error("Login failed ❌");
-      }
+      console.error('💥 Login error caught in component:', err);
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
+      const message = err.message || "Login failed";
+      toast.error(message + " ❌");
+      
+      // Also log to console for debugging
+      console.log('🔴 Login failed with message:', message);
     } finally {
       setLoading(false);
     }
@@ -66,6 +70,13 @@ export default function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
+
+      <p className="text-center mt-4 text-sm">
+        Don't have an account?{" "}
+        <Link to="/signup" className="text-blue-500 hover:underline">
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }

@@ -1,12 +1,7 @@
-import mongoose from "mongoose";
+import { db } from "../config/firebase.js";
 
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: { type: String, unique: true },
-  password: String,
-  photo_url: String,
-  accommodation: String,
-  bio: String,
-}, { timestamps: true });
+export const usersCollection = db.collection("users");
 
-export default mongoose.model("User", userSchema);
+export const COLLECTIONS = {
+  USERS: "users",
+};
