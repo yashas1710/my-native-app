@@ -11,7 +11,6 @@ export default function HomeFeed() {
   const navigate = useNavigate();
 
   const [activePlans, setActivePlans] = useState([]);
-  const [pastPlans, setPastPlans] = useState([]);
   const [joinedPlanIds, setJoinedPlanIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
@@ -37,31 +36,7 @@ export default function HomeFeed() {
 
         setJoinedPlanIds(joinedIds);
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const activePlansList = [];
-        const pastPlansList = [];
-
-        plansData.forEach((plan) => {
-          const startDate = new Date(plan.startDate);
-          const endDate = plan.endDate
-            ? new Date(plan.endDate)
-            : null;
-
-          if (
-            startDate >= today ||
-            !endDate ||
-            endDate >= today
-          ) {
-            activePlansList.push(plan);
-          } else {
-            pastPlansList.push(plan);
-          }
-        });
-
-        setActivePlans(activePlansList);
-        setPastPlans(pastPlansList);
+        setActivePlans(plansData);
       } catch (err) {
         console.error(err);
         toast.error("Failed to load plans ❌");
@@ -118,14 +93,14 @@ export default function HomeFeed() {
   };
 
   const handleDelete = async (planId) => {
+    if (!window.confirm("Are you sure you want to delete this plan?")) {
+      return;
+    }
+
     try {
       await plansAPI.deletePlan(planId);
 
       setActivePlans((prev) =>
-        prev.filter((p) => p.id !== planId)
-      );
-
-      setPastPlans((prev) =>
         prev.filter((p) => p.id !== planId)
       );
 
@@ -142,93 +117,107 @@ export default function HomeFeed() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="p-7 bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300">
-      <h1 className="text-3xl font-bold mb-6">
-        🏠 Home Feed
-      </h1>
+    <div
+      style={{
+        background: "var(--surface-3)",
+        minHeight: "100vh",
+        padding: "28px 24px",
+      }}
+    >
+      <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+        <header style={{ marginBottom: "24px" }}>
+          <h1
+            style={{
+              fontSize: "22px",
+              fontWeight: 600,
+              color: "var(--text-1)",
+              letterSpacing: "-0.4px",
+              margin: 0,
+            }}
+          >
+            What&apos;s on today
+          </h1>
+          <p
+            style={{
+              marginTop: "4px",
+              fontSize: "13px",
+              color: "var(--text-2)",
+            }}
+          >
+            {user?.accommodationId} · {activePlans.length} active plans
+          </p>
+        </header>
 
-      <h2 className="text-2xl font-semibold mb-4">
-        🌱 Active Plans
-      </h2>
-
-      {activePlans.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          {activePlans.map((plan) => (
-            <Card
-              key={plan.id}
-              plan={plan}
-              creator={{
-                name:
-                  plan.creatorName || "Unknown",
-                photoURL:
-                  plan.creatorPhotoUrl || "",
+        {activePlans.length > 0 ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gap: "14px",
+            }}
+          >
+            {activePlans.map((plan) => (
+              <Card
+                key={plan.id}
+                plan={plan}
+                creator={{
+                  name:
+                    plan.creatorName || "Unknown",
+                  photoURL:
+                    plan.creatorPhotoUrl || "",
+                }}
+                isCreator={
+                  user?.id === plan.createdBy
+                }
+                hasJoined={joinedPlanIds.has(
+                  plan.id
+                )}
+                onJoin={() => handleJoin(plan)}
+                onLeave={() =>
+                  handleLeave(plan.id)
+                }
+                onEdit={() =>
+                  navigate(
+                    `/edit-plan/${plan.id}`
+                  )
+                }
+                onDelete={() =>
+                  handleDelete(plan.id)
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "48px 0" }}>
+            <div
+              style={{
+                color: "var(--text-2)",
+                fontSize: "14px",
               }}
-              isCreator={
-                user?.id === plan.createdBy
-              }
-              hasJoined={joinedPlanIds.has(
-                plan.id
-              )}
-              onJoin={() => handleJoin(plan)}
-              onLeave={() =>
-                handleLeave(plan.id)
-              }
-              onEdit={() =>
-                navigate(
-                  `/edit-plan/${plan.id}`
-                )
-              }
-              onDelete={() =>
-                handleDelete(plan.id)
-              }
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500 italic">
-          🌱 No active plans right now.
-        </p>
-      )}
+            >
+              No plans right now. Be the first to create one.
+            </div>
 
-      <h2 className="text-2xl font-semibold mb-4">
-        📜 Past Plans
-      </h2>
-
-      {pastPlans.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {pastPlans.map((plan) => (
-            <Card
-              key={plan.id}
-              plan={plan}
-              creator={{
-                name:
-                  plan.creatorName || "Unknown",
-                photoURL:
-                  plan.creatorPhotoUrl || "",
+            <button
+              type="button"
+              onClick={() => navigate("/create")}
+              style={{
+                marginTop: "14px",
+                background: "var(--brand)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "8px 14px",
+                fontSize: "13px",
+                fontWeight: 500,
+                cursor: "pointer",
               }}
-              isCreator={
-                user?.id === plan.createdBy
-              }
-              hasJoined={joinedPlanIds.has(
-                plan.id
-              )}
-              isPast
-              onEdit={() =>
-                navigate(
-                  `/edit-plan/${plan.id}`
-                )
-              }
-              onDelete={() =>
-                handleDelete(plan.id)
-              }
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500 italic">
-          📜 No past plans yet.
-        </p>
-      )}
+            >
+              + Create plan
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

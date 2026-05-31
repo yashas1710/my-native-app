@@ -13,38 +13,38 @@ export default function PlanCard({ plan, user }) {
     if (!plan?.id) return;
 
     const participantsRef = collection(db, "planParticipants");
-    const q = query(participantsRef, where("plan_id", "==", plan.id));
+    const q = query(participantsRef, where("planId", "==", plan.id));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const data = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
           const p = docSnap.data();
           try {
-            const uSnap = await getDoc(doc(db, "users", p.user_id));
+            const uSnap = await getDoc(doc(db, "users", p.userId));
             const u = uSnap.exists() ? uSnap.data() : {};
             return {
               id: docSnap.id,
-              name: u.displayName || p.email || "Unknown",
-              photoURL: u.photoURL || "",
-              user_id: p.user_id,
+              name: u.name || p.userEmail || "Unknown",
+              photoURL: u.photoUrl || "",
+              userId: p.userId,
             };
           } catch {
             return {
               id: docSnap.id,
-              name: p.email || "Unknown",
+              name: p.userEmail || "Unknown",
               photoURL: "",
-              user_id: p.user_id,
+              userId: p.userId,
             };
           }
         })
       );
 
       setParticipants(data);
-      setJoined(data.some((p) => p.user_id === user.uid));
+      setJoined(data.some((p) => p.userId === user.id));
     });
 
     return () => unsubscribe();
-  }, [plan.id, user.uid]);
+  }, [plan.id, user.id]);
 
   const handleJoin = async () => {
     try {
@@ -55,9 +55,13 @@ export default function PlanCard({ plan, user }) {
       }
 
       await addDoc(collection(db, "planParticipants"), {
-        plan_id: plan.id,
-        user_id: user.uid,
-        joined_at: new Date(),
+        planId: plan.id,
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name || "",
+        userPhotoUrl: user.photoUrl || "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
       toast.success("You're in!");
     } catch (err) {
@@ -68,7 +72,7 @@ export default function PlanCard({ plan, user }) {
 
   const handleLeave = async () => {
     try {
-      const participantDoc = participants.find((p) => p.user_id === user.uid);
+      const participantDoc = participants.find((p) => p.userId === user.id);
       if (!participantDoc) return;
 
       await deleteDoc(doc(db, "planParticipants", participantDoc.id));
@@ -80,7 +84,7 @@ export default function PlanCard({ plan, user }) {
   };
 
   // Exclude creator from participants list for avatars
-  const participantAvatars = participants.filter((p) => p.user_id !== plan.createdBy);
+  const participantAvatars = participants.filter((p) => p.userId !== plan.createdBy);
 
   return (
     <div className="border rounded-lg p-4 shadow-sm bg-white">
@@ -96,8 +100,8 @@ export default function PlanCard({ plan, user }) {
       {/* Creator */}
       {plan.creatorName && (
         <div className="mt-2 flex items-center gap-2">
-          {plan.creatorPhotoURL && (
-            <img src={plan.creatorPhotoURL} alt={plan.creatorName} className="w-6 h-6 rounded-full" />
+          {plan.creatorPhotoUrl && (
+            <img src={plan.creatorPhotoUrl} alt={plan.creatorName} className="w-6 h-6 rounded-full" />
           )}
           <span className="text-sm text-gray-600">
             Created by <span className="font-medium">{plan.creatorName}</span>

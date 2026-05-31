@@ -47,6 +47,9 @@ export const authAPI = {
     api.post("/auth/login", { email, password }),
   
   getMe: () => api.get("/auth/me"),
+
+  updateProfile: ({ name, photoUrl, bio }) =>
+    api.patch("/auth/profile", { name, photoUrl, bio }),
 };
 
 // Plans endpoints

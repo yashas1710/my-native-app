@@ -38,6 +38,10 @@ export default function MyActivity() {
   }, [user]);
 
   const handleDelete = async (planId) => {
+    if (!window.confirm("Are you sure you want to delete this plan?")) {
+      return;
+    }
+
     try {
       await plansAPI.deletePlan(planId);
 
@@ -80,63 +84,95 @@ export default function MyActivity() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 text-black dark:text-white transition-colors duration-300">
-      <h1 className="text-3xl font-bold mb-6">
-        📊 My Activity
-      </h1>
+    <div style={{ background: "var(--surface-3)", minHeight: "100vh", padding: "28px 24px" }}>
+      <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+        <h1
+          style={{
+            fontSize: "22px",
+            fontWeight: 600,
+            letterSpacing: "-0.4px",
+            marginBottom: "24px",
+            color: "var(--text-1)",
+          }}
+        >
+          My activity
+        </h1>
 
-      <h2 className="text-xl font-semibold mb-4">
-        📝 Created Plans
-      </h2>
+        <section>
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 500,
+              color: "var(--text-3)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: "12px",
+            }}
+          >
+            Created
+          </div>
 
-      {createdPlans.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
-          {createdPlans.map((plan) => (
-            <Card
-              key={plan.id}
-              plan={plan}
-              creator={{
-                name: plan.creatorName || "Unknown",
-                photoURL: plan.creatorPhotoUrl || "",
-              }}
-              isCreator={true}
-              onEdit={() =>
-                navigate(`/edit-plan/${plan.id}`)
-              }
-              onDelete={() => handleDelete(plan.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500 italic">
-          📝 You haven’t created any plans yet.
-        </p>
-      )}
+          {createdPlans.length > 0 ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "14px" }}>
+              {createdPlans.map((plan) => (
+                <Card
+                  key={plan.id}
+                  plan={plan}
+                  creator={{
+                    name: plan.creatorName || "Unknown",
+                    photoURL: plan.creatorPhotoUrl || "",
+                  }}
+                  isCreator={true}
+                  onEdit={() =>
+                    navigate(`/edit-plan/${plan.id}`)
+                  }
+                  onDelete={() => handleDelete(plan.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: "var(--text-2)", fontSize: "14px" }}>
+              You haven&apos;t created any plans yet.
+            </p>
+          )}
+        </section>
 
-      <h2 className="text-xl font-semibold mb-4 mt-8">
-        🤝 Joined Plans
-      </h2>
+        <section style={{ marginTop: "32px" }}>
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 500,
+              color: "var(--text-3)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: "12px",
+            }}
+          >
+            Joined
+          </div>
 
-      {joinedPlans.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
-          {joinedPlans.map((plan) => (
-            <Card
-              key={plan.id}
-              plan={plan}
-              creator={{
-                name: plan.creatorName || "Unknown",
-                photoURL: plan.creatorPhotoUrl || "",
-              }}
-              isCreator={false}
-              onLeave={() => handleLeave(plan.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500 italic">
-          🤝 You haven’t joined any plans yet.
-        </p>
-      )}
+          {joinedPlans.length > 0 ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "14px" }}>
+              {joinedPlans.map((plan) => (
+                <Card
+                  key={plan.id}
+                  plan={plan}
+                  creator={{
+                    name: plan.creatorName || "Unknown",
+                    photoURL: plan.creatorPhotoUrl || "",
+                  }}
+                  isCreator={false}
+                  onLeave={() => handleLeave(plan.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: "var(--text-2)", fontSize: "14px" }}>
+              You haven&apos;t joined any plans yet.
+            </p>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

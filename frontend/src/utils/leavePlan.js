@@ -1,8 +1,16 @@
+import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/firestore";
+import toast from "react-hot-toast";
+import { db } from "../firebase";
+
 export const leavePlan = async (planId, user) => {
   if (!user) return toast.error("Login required");
 
   try {
-    const q = query(collection(db, "planParticipants"), where("plan_id", "==", planId), where("user_id", "==", user.uid));
+    const q = query(
+      collection(db, "planParticipants"),
+      where("planId", "==", planId),
+      where("userId", "==", user.id)
+    );
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) return toast.error("You are not part of this plan");

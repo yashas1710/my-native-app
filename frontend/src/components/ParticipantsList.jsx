@@ -9,25 +9,25 @@ export default function ParticipantsList({ planId }) {
   useEffect(() => {
     const fetchParticipants = async () => {
       try {
-        const q = query(collection(db, "planParticipants"), where("plan_id", "==", planId));
+        const q = query(collection(db, "planParticipants"), where("planId", "==", planId));
         const snapshot = await getDocs(q);
         const participantData = snapshot.docs.map(d => d.data());
 
         const enrichedParticipants = [];
         for (const p of participantData) {
-          const userRef = doc(db, "users", p.user_id);
+          const userRef = doc(db, "users", p.userId);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
             enrichedParticipants.push({
-              id: p.user_id,
-              displayName: userSnap.data().displayName || "Unknown",
-              photoURL: userSnap.data().photoURL || null,
-              email: p.email || "",
+              id: p.userId,
+              displayName: userSnap.data().name || userSnap.data().displayName || "Unknown",
+              photoURL: userSnap.data().photoUrl || userSnap.data().photoURL || null,
+              email: p.userEmail || "",
             });
           } else {
             enrichedParticipants.push({
-              id: p.user_id,
-              displayName: p.email || "Unknown",
+              id: p.userId,
+              displayName: p.userEmail || "Unknown",
               photoURL: null,
             });
           }

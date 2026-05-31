@@ -23,6 +23,22 @@ export class AuthService {
     return { user, token };
   }
 
+  async updateProfile(userId, { name, photoUrl, bio }) {
+    const user = await UserRepository.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const updated = await UserRepository.updateById(userId, {
+      ...(name !== undefined ? { name } : {}),
+      ...(photoUrl !== undefined ? { photoUrl } : {}),
+      ...(bio !== undefined ? { bio } : {}),
+    });
+
+    return this.toProfileDTO(updated);
+  }
+
   async login(email, password) {
     const userWithPassword = await UserRepository.findByEmailWithPassword(
       email.toLowerCase().trim()

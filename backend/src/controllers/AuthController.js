@@ -65,6 +65,25 @@ export class AuthController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  async updateProfile(req, res) {
+    try {
+      const { name, photoUrl, bio } = req.body;
+
+      const user = await AuthService.updateProfile(req.user.id, {
+        name,
+        photoUrl,
+        bio,
+      });
+
+      res.json({
+        message: "Profile updated successfully",
+        user,
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
 }
 
 export default new AuthController();

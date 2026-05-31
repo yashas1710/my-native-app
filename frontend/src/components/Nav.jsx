@@ -1,116 +1,135 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+const navItemBase =
+  "inline-flex items-center px-2 py-1 transition-colors duration-200";
+const navItemInactive = "text-[var(--text-2)] font-normal";
+const navItemActive = "text-[var(--text-1)] font-medium";
+
+function getInitials(name) {
+  if (!name) return "?";
+
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+
+  const first = parts[0]?.[0] || "";
+  const last = parts[parts.length - 1]?.[0] || "";
+  return `${first}${last}`.toUpperCase() || "?";
+}
+
 export default function Nav() {
-  const { user, profile, logout } = useAuth(); // ✅ include profile
-  const [open, setOpen] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode");
+    if (saved !== null) return saved === "true";
+
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+      return;
+    }
+
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("darkMode", "false");
+  }, [darkMode]);
+
+  const initials = getInitials(user?.name);
 
   return (
-    <nav className="sticky top-0 z-50 bg-gradient-to-r from-blue-200 via-indigo-300 to-purple-200 shadow-xl">
-      <div className="flex items-center justify-between px-6 py-3 text-white">
-
-        {/* Logo */}
-        <Link to="/home" className="flex items-center gap-2">
-          <img
-            src="/icons/icon-192.png"
-            alt="Unplango Logo"
-            className="h-8 w-8"
-          />
-          <span className="text-xl font-extrabold">Unplango</span>
-        </Link>
-
-        {/* Desktop Menu */}
-        <div className="hidden md:flex gap-6 font-semibold">
-          {["/home", "/plan/create", "/activity", "/profile"].map((path, i) => (
-            <NavLink
-              key={i}
-              to={path}
-              className={({ isActive }) =>
-                `hover:scale-110 transition ${
-                  isActive ? "text-brand font-bold" : "text-white"
-                }`
-              }
+    <nav
+      className="sticky top-0 z-50 bg-white dark:bg-[var(--surface)]"
+      style={{ borderBottom: "0.5px solid var(--border)" }}
+    >
+      <div className="h-[56px] px-6 flex items-center gap-4">
+        <div className="flex items-center shrink-0">
+          <Link to="/home" className="flex items-center gap-2">
+            <span
+              className="flex h-[28px] w-[28px] items-center justify-center text-[14px] text-white"
+              style={{ backgroundColor: "var(--brand)", borderRadius: 7 }}
+              aria-hidden="true"
             >
-              {path === "/home"
-                ? "Home"
-                : path === "/plan/create"
-                ? "Create"
-                : path === "/activity"
-                ? "Activity"
-                : "Profile"}
-            </NavLink>
-          ))}
+              ⚡
+            </span>
+            <span
+              className="text-[15px] font-semibold tracking-[-0.3px]"
+              style={{ color: "var(--text-1)" }}
+            >
+              Un<span style={{ color: "var(--brand)" }}>plan</span>go
+            </span>
+          </Link>
         </div>
 
-        {/* Desktop Auth */}
-        <div className="hidden md:flex items-center gap-4">
-          {user ? (
+        <div className="flex-1 flex items-center justify-center gap-8">
+          {isAuthenticated && (
             <>
-              {/* Show avatar if available */}
-              {profile?.photoURL ? (
-                <img
-                  src={profile.photoURL}
-                  alt="Profile"
-                  className="h-8 w-8 rounded-full object-cover border"
-                />
-              ) : (
-                <Link to="/profile" className="text-sm underline">
-                  Profile
-                </Link>
-              )}
-              <button
-                onClick={logout}
-                className="bg-red-500 px-4 py-1 rounded-lg hover:bg-red-600"
+              <NavLink
+                to="/home"
+                className={({ isActive }) =>
+                  `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
+                }
               >
-                Logout
+                Home
+              </NavLink>
+              <NavLink
+                to="/activity"
+                className={({ isActive }) =>
+                  `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
+                }
+              >
+                Activity
+              </NavLink>
+              <NavLink
+                to="/profile"
+                className={({ isActive }) =>
+                  `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
+                }
+              >
+                Profile
+              </NavLink>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {isAuthenticated && (
+            <>
+              <Link
+                to="/create"
+                className="inline-flex items-center justify-center rounded-[8px] px-[14px] py-[7px] text-[13px] font-medium text-white"
+                style={{ backgroundColor: "var(--brand)" }}
+              >
+                Create
+              </Link>
+
+              <Link
+                to="/profile"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-full text-[11px] font-semibold"
+                style={{ backgroundColor: "var(--brand-light)", color: "var(--brand)" }}
+                aria-label="Go to profile"
+              >
+                {initials}
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setDarkMode((current) => !current)}
+                className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px]"
+                style={{ border: "0.5px solid var(--border)" }}
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                <span className="text-[14px] leading-none">
+                  {darkMode ? "☀" : "☾"}
+                </span>
               </button>
             </>
-          ) : (
-            <Link
-              to="/login"
-              className="bg-yellow-400 text-black px-4 py-1 rounded-lg font-bold"
-            >
-              Login
-            </Link>
           )}
         </div>
-
-        {/* Mobile Hamburger */}
-        <button
-          className="md:hidden text-3xl"
-          aria-label="Toggle menu"
-          onClick={() => setOpen(!open)}
-        >
-          ☰
-        </button>
       </div>
-
-      {/* Mobile Dropdown */}
-      {open && (
-        <div className="md:hidden bg-indigo-600 text-white px-6 py-4 space-y-4">
-          <NavLink to="/home" onClick={() => setOpen(false)}>🏠 Home</NavLink>
-          <NavLink to="/plan/create" onClick={() => setOpen(false)}>✍️ Create</NavLink>
-          <NavLink to="/activity" onClick={() => setOpen(false)}>📊 Activity</NavLink>
-          <NavLink to="/profile" onClick={() => setOpen(false)}>👤 Profile</NavLink>
-
-          {user ? (
-            <button
-              onClick={logout}
-              className="block w-full bg-red-500 py-2 rounded-lg hover:bg-red-600"
-            >
-              Logout
-            </button>
-          ) : (
-            <Link
-              to="/login"
-              className="block bg-yellow-400 text-black py-2 rounded-lg text-center font-bold"
-            >
-              Login
-            </Link>
-          )}
-        </div>
-      )}
     </nav>
   );
 }

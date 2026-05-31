@@ -6,6 +6,26 @@ import { useAuth } from "../context/AuthContext";
 import toast, { Toaster } from "react-hot-toast";
 import Spinner from "../components/Spinner";
 
+const labelStyle = {
+  display: "block",
+  marginBottom: "5px",
+  fontSize: "12px",
+  fontWeight: 500,
+  color: "var(--text-2)",
+};
+
+const fieldStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  border: "0.5px solid var(--border-md)",
+  borderRadius: "8px",
+  background: "var(--surface)",
+  fontSize: "14px",
+  color: "var(--text-1)",
+  marginBottom: "16px",
+  outline: "none",
+};
+
 export default function CreatePlan() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -56,80 +76,124 @@ export default function CreatePlan() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-black dark:text-white flex items-center justify-center p-6">
+    <div style={{ background: "var(--surface-3)", minHeight: "100vh" }}>
       <Toaster position="top-right" reverseOrder={false} />
 
-      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
-        <h1 className="text-3xl font-extrabold mb-6 text-center text-blue-600 dark:text-blue-400">
-          🚀 Create a New Plan
-        </h1>
+      <header
+        className="sticky top-0 z-10"
+        style={{
+          background: "var(--surface)",
+          borderBottom: "0.5px solid var(--border)",
+          padding: "14px 20px",
+        }}
+      >
+        <div className="mx-auto flex items-center justify-between" style={{ maxWidth: "520px" }}>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="rounded-[8px] px-2 py-1 text-sm"
+              style={{
+                backgroundColor: "transparent",
+                border: "0.5px solid var(--border)",
+                color: "var(--text-2)",
+              }}
+            >
+              X
+            </button>
+            <h1 style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-1)" }}>
+              New plan
+            </h1>
+          </div>
 
-        <form onSubmit={handleCreate} className="space-y-5">
+          <button
+            type="submit"
+            form="create-plan-form"
+            disabled={saving}
+            style={{
+              background: "var(--brand)",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "7px 16px",
+              fontSize: "13px",
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            {saving ? "Posting..." : "Post"}
+          </button>
+        </div>
+      </header>
+
+      <div style={{ maxWidth: "520px", margin: "0 auto", padding: "24px 20px" }}>
+        <form id="create-plan-form" onSubmit={handleCreate}>
+          <label style={labelStyle}>What&apos;s the plan?</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="Plan Title"
+            style={fieldStyle}
+            placeholder="Gym session, coffee run, study group..."
             required
           />
 
+          <label style={labelStyle}>Details</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={300}
-            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-            placeholder="Description (max 300 chars)"
+            rows={3}
+            style={fieldStyle}
+            placeholder="Any vibe or info (optional)"
           />
-          <p className="text-xs text-gray-500 dark:text-gray-400">{description.length}/300</p>
+          <p style={{ marginTop: "-8px", marginBottom: "16px", fontSize: "11px", color: "var(--text-3)", textAlign: "right" }}>
+            {description.length}/300
+          </p>
 
+          <label style={labelStyle}>Location</label>
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
-            placeholder="Location"
+            style={fieldStyle}
+            placeholder="Where's it happening?"
             required
           />
 
-          <input
-            type="datetime-local"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-            required
-          />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+            <div>
+              <label style={labelStyle}>Starts</label>
+              <input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={fieldStyle}
+                required
+              />
+            </div>
 
-          <input
-            type="datetime-local"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-          />
+            <div>
+              <label style={labelStyle}>Ends</label>
+              <input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={fieldStyle}
+              />
+            </div>
+          </div>
 
+          <label style={labelStyle}>Max spots</label>
           <input
             type="number"
             value={maxSpots}
             onChange={(e) => setMaxSpots(e.target.value)}
-            className="w-full border rounded-lg p-3 bg-white dark:bg-gray-700 text-black dark:text-white focus:ring-2 focus:ring-pink-500 outline-none"
-            placeholder="Max Spots (1–100)"
+            style={fieldStyle}
+            placeholder="Unlimited"
             min={1}
             max={100}
           />
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-lg w-full shadow-lg hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
-          >
-            {saving ? (
-              <>
-                <Spinner /> <span>Creating...</span>
-              </>
-            ) : (
-              "Create Plan"
-            )}
-          </button>
         </form>
       </div>
     </div>

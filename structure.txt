@@ -1,0 +1,144 @@
+# File Tree for: unplango
+Generated on: 5/31/2026, 10:16:32 PM
+Path: unplango
+Max Depth: Unlimited
+Ignored Patterns: node_modules, .git
+
+```
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── firebase.js
+│   │   ├── controllers/
+│   │   │   ├── AuthController.js
+│   │   │   └── PlanController.js
+│   │   ├── middleware/
+│   │   │   ├── auth.js
+│   │   │   └── cors.js
+│   │   ├── models/
+│   │   │   ├── Plan.js
+│   │   │   ├── PlanParticipant.js
+│   │   │   └── User.js
+│   │   ├── repositories/
+│   │   │   ├── PlanRepository.js
+│   │   │   └── UserRepository.js
+│   │   ├── routes/
+│   │   │   ├── auth.js
+│   │   │   └── plans.js
+│   │   ├── services/
+│   │   │   ├── AuthService.js
+│   │   │   └── PlanService.js
+│   │   └── validators/
+│   │       ├── authValidator.js
+│   │       └── planValidator.js
+│   ├── tests/
+│   │   ├── integration/
+│   │   └── unit/
+│   ├── .env
+│   ├── .env.example
+│   ├── package-lock.json
+│   ├── package.json
+│   └── server.js
+├── frontend/
+│   ├── dist/
+│   │   ├── assets/
+│   │   │   ├── Chat-BNAJmIgB.js
+│   │   │   ├── EditPlan-CUVrbyCr.js
+│   │   │   ├── firebase-B9l3E8cs.js
+│   │   │   ├── firebase-BuZ6atXR.js
+│   │   │   ├── index-DjYqF8lu.js
+│   │   │   ├── index-Dy_dcP22.css
+│   │   │   ├── MyActivity-C1hG9xPh.js
+│   │   │   ├── PlanDetail-RwxUvZkH.js
+│   │   │   ├── Profile-BWGhvhFS.js
+│   │   │   └── react-DnxA9v5e.js
+│   │   ├── icons/
+│   │   │   ├── icon-192.png
+│   │   │   └── icon-512.png
+│   │   ├── index.html
+│   │   ├── manifest.json
+│   │   ├── offline.html
+│   │   ├── service-worker.js
+│   │   └── vite.svg
+│   ├── public/
+│   │   ├── icons/
+│   │   │   ├── icon-192.png
+│   │   │   └── icon-512.png
+│   │   ├── index.html
+│   │   ├── manifest.json
+│   │   ├── offline.html
+│   │   ├── service-worker.js
+│   │   └── vite.svg
+│   ├── src/
+│   │   ├── assets/
+│   │   │   └── react.svg
+│   │   ├── components/
+│   │   │   ├── Button.jsx
+│   │   │   ├── Card.jsx
+│   │   │   ├── Input.jsx
+│   │   │   ├── Layout.jsx
+│   │   │   ├── Loader.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── Nav.jsx
+│   │   │   ├── ParticipantsList.jsx
+│   │   │   ├── PlanCard.jsx
+│   │   │   ├── RequireAuth.jsx
+│   │   │   └── Spinner.jsx
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   ├── plans/
+│   │   │   └── profile/
+│   │   ├── pages/
+│   │   │   ├── Chat.jsx
+│   │   │   ├── CreatePlan.jsx
+│   │   │   ├── EditPlan.jsx
+│   │   │   ├── HomeFeed.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── MyActivity.jsx
+│   │   │   ├── PlanDetail.jsx
+│   │   │   ├── Profile.jsx
+│   │   │   ├── ProfileEdit.jsx
+│   │   │   └── Signup.jsx
+│   │   ├── services/
+│   │   │   └── planService.js
+│   │   ├── shared/
+│   │   │   ├── api/
+│   │   │   ├── lib/
+│   │   │   └── ui/
+│   │   ├── styles/
+│   │   │   └── main.css
+│   │   ├── ut/
+│   │   ├── utils/
+│   │   │   ├── formatDate.js
+│   │   │   ├── leavePlan.js
+│   │   │   ├── planActions.js
+│   │   │   └── validatePlanDates.js
+│   │   ├── api.js
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── firebase.js
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   │   └── serviceWorker.js
+│   ├── .gitignore
+│   ├── chromewebdata_2026-01-02_20-26-32.report.html
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── localhost_2026-01-02_20-28-41.report.html
+│   ├── localhost_2026-01-02_20-29-06.report.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── README.md
+│   ├── tailwind.config.js
+│   ├── vercel.json
+│   └── vite.config.js
+├── .gitignore
+├── firebase.json
+├── firestore.indexes.json
+├── firestore.rules
+├── MVP_REQUIREMENTS.md
+└── structure.txt
+```
