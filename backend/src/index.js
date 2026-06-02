@@ -1,35 +1,20 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
-import cors from "cors";
-import authRoutes from "./routes/auth.js";
-import planRoutes from "./routes/plans.js";
-import "./config/firebase.js"; // Initialize Firebase Admin SDK
-
 const app = express();
 
-// Middleware
-app.use(cors({ origin: "*" }));
+app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get("/health", (req, res) => res.json({ status: "OK" }));
-
-// Routes
-app.use("/auth", authRoutes);
-app.use("/plans", planRoutes);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.status || 500).json({
-    error: err.message || "Internal server error",
-  });
+app.get("/health", (req, res) => {
+  res.json({ status: "OK" });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
