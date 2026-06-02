@@ -1,7 +1,5 @@
 // src/pages/Profile.jsx
 import { useEffect, useState } from "react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../firebase";
 import { authAPI, plansAPI } from "../api";
 import { useAuth } from "../context/AuthContext";
 import toast, { Toaster } from "react-hot-toast";
@@ -17,18 +15,8 @@ const inputStyle = {
   outline: "none",
 };
 
-const cameraIconStyle = {
-  width: "11px",
-  height: "11px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "white",
-  lineHeight: 1,
-};
-
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   const [fullName, setFullName] = useState("");
   const [bio, setBio] = useState("");
@@ -89,48 +77,12 @@ export default function Profile() {
       setPhotoURL(updatedUser.photoUrl || "");
 
       toast.success("Profile updated ✅");
+      setUser((prev) => ({ ...prev, name: fullName.trim(), bio: bio.trim(), photoUrl: photoURL }));
     } catch (err) {
       console.error(err);
       toast.error("Failed to update profile ❌");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File too large (max 2MB) ❌");
-      return;
-    }
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      toast.error("Only JPG/PNG allowed ❌");
-      return;
-    }
-
-    try {
-      const storageRef = ref(storage, `profilePics/${user.id}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setPhotoURL(url);
-
-      const response = await authAPI.updateProfile({
-        name: fullName.trim(),
-        bio: bio.trim(),
-        photoUrl: url,
-      });
-
-      const updatedUser = response.data.user;
-      setFullName(updatedUser.name || "");
-      setBio(updatedUser.bio || "");
-      setPhotoURL(updatedUser.photoUrl || url);
-
-      toast.success("Photo uploaded ✅");
-    } catch (err) {
-      console.error(err);
-      toast.error("Photo upload failed ❌");
     }
   };
 
@@ -174,29 +126,16 @@ export default function Profile() {
             overflow: "hidden",
           }}
         >
-          <input type="file" accept="image/*" onChange={handlePhotoUpload} hidden />
-          <span>{initials || "?"}</span>
+          {photoURL ? (
+            <img
+              src={photoURL}
+              alt={fullName || "avatar"}
+              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "9999px" }}
+            />
+          ) : (
+            <span>{initials || "?"}</span>
+          )}
 
-          <span
-            style={{
-              position: "absolute",
-              right: "-1px",
-              bottom: "-1px",
-              width: "22px",
-              height: "22px",
-              borderRadius: "9999px",
-              background: "var(--brand)",
-              border: "2px solid var(--surface)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "11px",
-              color: "white",
-              lineHeight: 1,
-            }}
-          >
-            <span style={cameraIconStyle}>📷</span>
-          </span>
         </label>
 
         <div

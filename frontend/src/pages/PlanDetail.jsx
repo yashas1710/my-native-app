@@ -165,6 +165,25 @@ export default function PlanDetail() {
               {isParticipant ? 'Leave Plan' : isFull ? 'Full 🔒' : 'Join Plan'}
             </button>
           )}
+          {(isParticipant || isCreator) && (
+            <button
+              onClick={() => navigate(`/chat/${plan.id}`)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "0.5px solid var(--border-md)",
+                background: "transparent",
+                color: "var(--text-1)",
+                fontSize: "14px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              💬 Chat
+            </button>
+          )}
         </div>
       </div>
     </div>
