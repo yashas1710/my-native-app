@@ -13,6 +13,20 @@ app.get("/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
+app.post("/auth/signup", (req, res) => {
+  res.json({
+    success: true,
+    message: "Temporary signup endpoint working",
+  });
+});
+
+app.post("/auth/login", (req, res) => {
+  res.json({
+    success: true,
+    token: "temporary-demo-token",
+  });
+});
+
 const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
