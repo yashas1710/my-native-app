@@ -14,16 +14,19 @@ app.get("/health", (req, res) => {
 });
 
 app.post("/auth/signup", (req, res) => {
+  console.log(req.body);
+
   res.json({
     success: true,
-    message: "Temporary signup endpoint working",
+    message: "Signup endpoint working",
+    user: req.body,
   });
 });
 
 app.post("/auth/login", (req, res) => {
   res.json({
     success: true,
-    token: "temporary-demo-token",
+    token: "demo-token",
   });
 });
 
