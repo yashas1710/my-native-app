@@ -40,16 +40,16 @@ api.interceptors.response.use(
 
 // Auth endpoints
 export const authAPI = {
-  signup: (name, email, password, accommodationId) =>
-    api.post("/auth/signup", { name, email, password, accommodationId }),
+  signup: (name, email, password, accommodationId, gender) =>
+    api.post("/auth/signup", { name, email, password, accommodationId, gender }),
   
   login: (email, password) =>
     api.post("/auth/login", { email, password }),
   
   getMe: () => api.get("/auth/me"),
 
-  updateProfile: ({ name, photoUrl, bio }) =>
-    api.patch("/auth/profile", { name, photoUrl, bio }),
+  updateProfile: ({ name, photoUrl, bio, gender }) =>
+    api.patch("/auth/profile", { name, photoUrl, bio, gender }),
 };
 
 // Plans endpoints

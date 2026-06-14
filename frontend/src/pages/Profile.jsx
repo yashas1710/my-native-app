@@ -22,6 +22,7 @@ export default function Profile() {
   const [bio, setBio] = useState("");
   const [photoURL, setPhotoURL] = useState("");
   const [email, setEmail] = useState("");
+  const [gender, setGender] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [createdCount, setCreatedCount] = useState(0);
   const [joinedCount, setJoinedCount] = useState(0);
@@ -57,6 +58,7 @@ export default function Profile() {
     setBio(user.bio || "");
     setPhotoURL(user.photoUrl || "");
     setEmail(user.email || "");
+    setGender(user.gender || "");
     setCreatedAt(formatCreatedAt(user.createdAt));
     fetchCounts();
   }, [user]);
@@ -69,15 +71,17 @@ export default function Profile() {
         name: fullName.trim(),
         bio: bio.trim(),
         photoUrl: photoURL,
+        gender: gender || undefined,
       });
 
       const updatedUser = response.data.user;
       setFullName(updatedUser.name || "");
       setBio(updatedUser.bio || "");
       setPhotoURL(updatedUser.photoUrl || "");
+      setGender(updatedUser.gender || "");
 
       toast.success("Profile updated ✅");
-      setUser((prev) => ({ ...prev, name: fullName.trim(), bio: bio.trim(), photoUrl: photoURL }));
+      setUser((prev) => ({ ...prev, name: fullName.trim(), bio: bio.trim(), photoUrl: photoURL, gender: gender || undefined }));
     } catch (err) {
       console.error(err);
       toast.error("Failed to update profile ❌");
@@ -212,8 +216,23 @@ export default function Profile() {
           type="text"
           value={email}
           disabled
-          style={{ ...inputStyle, marginBottom: "24px", opacity: 0.75 }}
+          style={{ ...inputStyle, marginBottom: "16px", opacity: 0.75 }}
         />
+
+        <label style={{ display: "block", marginBottom: "5px", fontSize: "12px", fontWeight: 500, color: "var(--text-2)" }}>
+          Gender (Optional)
+        </label>
+        <select
+          value={gender}
+          onChange={(e) => setGender(e.target.value)}
+          style={{ ...inputStyle, marginBottom: "24px" }}
+        >
+          <option value="">Select gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+          <option value="prefer_not_to_say">Prefer not to say</option>
+        </select>
 
         <button
           onClick={handleSave}

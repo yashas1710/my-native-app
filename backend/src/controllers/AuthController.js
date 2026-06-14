@@ -13,13 +13,14 @@ export class AuthController {
         return res.status(400).json({ errors: validation.errors });
       }
 
-      const { name, email, password, accommodationId } = validation.data;
+      const { name, email, password, accommodationId, gender } = validation.data;
 
       const { user, token } = await AuthService.signup(
         name,
         email,
         password,
-        accommodationId
+        accommodationId,
+        gender
       );
 
       res.json({
@@ -68,12 +69,13 @@ export class AuthController {
 
   async updateProfile(req, res) {
     try {
-      const { name, photoUrl, bio } = req.body;
+      const { name, photoUrl, bio, gender } = req.body;
 
       const user = await AuthService.updateProfile(req.user.id, {
         name,
         photoUrl,
         bio,
+        gender,
       });
 
       res.json({

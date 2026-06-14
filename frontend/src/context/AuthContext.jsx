@@ -63,7 +63,8 @@ export function AuthProvider({ children }) {
     name,
     email,
     password,
-    accommodationId
+    accommodationId,
+    gender
   ) => {
     try {
       setError(null);
@@ -73,7 +74,8 @@ export function AuthProvider({ children }) {
           name,
           email,
           password,
-          accommodationId
+          accommodationId,
+          gender
         );
 
       const { token, user } =

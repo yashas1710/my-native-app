@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const navItemBase =
@@ -19,7 +19,8 @@ function getInitials(name) {
 }
 
 export default function Nav() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
     if (saved !== null) return saved === "true";
@@ -125,6 +126,17 @@ export default function Nav() {
                 <span className="text-[14px] leading-none">
                   {darkMode ? "☀" : "☾"}
                 </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { logout(); navigate("/login"); }}
+                className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px]"
+                style={{ border: "0.5px solid var(--border)" }}
+                aria-label="Logout"
+                title="Logout"
+              >
+                <span className="text-[14px] leading-none">⎋</span>
               </button>
             </>
           )}

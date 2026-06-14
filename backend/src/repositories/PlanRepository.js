@@ -278,32 +278,24 @@ export class PlanRepository {
       .where("userId", "==", userId)
       .get();
 
-    const participantDocs = participantsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    if (participantsSnapshot.empty) return [];
 
-    // Sort newest joined first
-    participantDocs.sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    const participantDocs = participantsSnapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(skip, skip + limit);
+
+    if (participantDocs.length === 0) return [];
+
+    // Single batched read instead of N sequential reads
+    const planRefs = participantDocs.map((p) =>
+      plansCollection.doc(p.planId)
     );
+    const planDocs = await db.getAll(...planRefs);
 
-    const paginated = participantDocs.slice(skip, skip + limit);
-
-    const plans = [];
-
-    for (const participant of paginated) {
-      const planDoc = await plansCollection.doc(participant.planId).get();
-
-      if (planDoc.exists) {
-        plans.push({
-          id: planDoc.id,
-          ...planDoc.data(),
-        });
-      }
-    }
-
-    return plans;
+    return planDocs
+      .filter((doc) => doc.exists)
+      .map((doc) => ({ id: doc.id, ...doc.data() }));
   }
 }
 

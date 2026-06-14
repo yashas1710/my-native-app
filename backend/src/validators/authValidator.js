@@ -25,11 +25,14 @@ const accommodationIdSchema = z
   .min(1, "Accommodation ID is required")
   .trim();
 
+const genderSchema = z.enum(["male", "female", "other", "prefer_not_to_say"]).optional();
+
 export const signupSchema = z.object({
   name: nameSchema,
   email: emailSchema,
   password: passwordSchema,
   accommodationId: accommodationIdSchema,
+  gender: genderSchema,
 });
 
 export const loginSchema = z.object({
@@ -41,6 +44,7 @@ export const updateProfileSchema = z.object({
   name: nameSchema.optional(),
   bio: z.string().max(500).optional(),
   photoUrl: z.string().url().optional(),
+  gender: genderSchema,
 });
 
 export const validateInput = (schema, data) => {

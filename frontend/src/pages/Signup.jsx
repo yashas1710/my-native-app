@@ -31,6 +31,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accommodationId, setAccommodationId] = useState("");
+  const [gender, setGender] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e) => {
@@ -50,7 +51,7 @@ export default function Signup() {
 
     try {
       setLoading(true);
-      await signup(name.trim(), email, password, accommodationId.trim());
+      await signup(name.trim(), email, password, accommodationId.trim(), gender || undefined);
       toast.success("Signup successful ✅");
       navigate("/");
     } catch (err) {
@@ -115,10 +116,23 @@ export default function Signup() {
             type="text"
             value={accommodationId}
             onChange={(e) => setAccommodationId(e.target.value)}
-            style={{ ...inputStyle, marginBottom: "8px" }}
+            style={{ ...inputStyle, marginBottom: "16px" }}
             placeholder="Accommodation ID (e.g., hall-a, dorm-b)"
             required
           />
+
+          <label style={labelStyle}>Gender (Optional)</label>
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            style={{ ...inputStyle, marginBottom: "8px" }}
+          >
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
 
           <button
             type="submit"

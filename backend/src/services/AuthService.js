@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import UserRepository from "../repositories/UserRepository.js";
 
 export class AuthService {
-  async signup(name, email, password, accommodationId) {
+  async signup(name, email, password, accommodationId, gender) {
     const exists = await UserRepository.existsByEmail(email);
     if (exists) {
       throw new Error("Email already registered");
@@ -16,6 +16,7 @@ export class AuthService {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
       accommodationId,
+      ...(gender !== undefined ? { gender } : {}),
     });
 
     const token = this.generateToken(user);
@@ -23,7 +24,7 @@ export class AuthService {
     return { user, token };
   }
 
-  async updateProfile(userId, { name, photoUrl, bio }) {
+  async updateProfile(userId, { name, photoUrl, bio, gender }) {
     const user = await UserRepository.findById(userId);
 
     if (!user) {
@@ -34,6 +35,7 @@ export class AuthService {
       ...(name !== undefined ? { name } : {}),
       ...(photoUrl !== undefined ? { photoUrl } : {}),
       ...(bio !== undefined ? { bio } : {}),
+      ...(gender !== undefined ? { gender } : {}),
     });
 
     return this.toProfileDTO(updated);
@@ -45,6 +47,10 @@ export class AuthService {
     );
 
     if (!userWithPassword) {
+      throw new Error("Invalid credentials");
+    }
+
+    if (!userWithPassword.password) {
       throw new Error("Invalid credentials");
     }
 
@@ -86,13 +92,18 @@ export class AuthService {
   }
 
   toProfileDTO(user) {
+    const avatarUrl =
+      user.photoUrl ||
+      `https://api.dicebear.com/7.x/thumbs/svg?seed=${user.id}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       accommodationId: user.accommodationId,
-      photoUrl: user.photoUrl || "",
+      photoUrl: avatarUrl,
       bio: user.bio || "",
+      gender: user.gender || "prefer_not_to_say",
       createdAt: user.createdAt,
     };
   }

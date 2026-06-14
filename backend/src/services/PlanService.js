@@ -12,12 +12,16 @@ export class PlanService {
     // IMPORTANT:
     // accommodationId is automatically taken from logged-in user
     // frontend should NOT send its own accommodationId
+    const creatorPhotoUrl =
+      userDoc.photoUrl ||
+      `https://api.dicebear.com/7.x/thumbs/svg?seed=${userId}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+
     const plan = await PlanRepository.create({
       ...planData,
       createdBy: userId,
       accommodationId: userDoc.accommodationId,
       creatorName: userDoc.name,
-      creatorPhotoUrl: userDoc.photoUrl || "",
+      creatorPhotoUrl,
     });
 
     return this.toPlanDTO(plan);

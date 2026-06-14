@@ -436,32 +436,88 @@ unplango/
 
 ## Immediate Action Items
 
-### Priority 1: Fix Authentication 🔴 BLOCKING
+> **Target: Production deployment within 24 hours. 3 steps, in strict order. Do not start Step 2 until Step 1 is verified.**
 
-1. **Grant IAM Permission**
-   - Go to Firebase Console → Project Settings → Service Accounts
-   - Add "Cloud Datastore User" role to: `firebase-adminsdk-fbsvc@unplango-app-b3db1.iam.gserviceaccount.com`
-   - This unblocks sign-up/login
+---
 
-### Priority 2: Complete My Activity 🟡
+### STEP 1 — Unblock Auth (30 minutes) 🔴 DO THIS FIRST
 
-1. Backend: Implement `GET /plans/me/created` endpoint
-2. Backend: Implement `GET /plans/me/joined` endpoint
-3. Frontend: Add API calls in MyActivity.jsx
-4. Test pagination if needed
+The entire app is broken until this is done. Auth failing = nothing else is testable.
 
-### Priority 3: Add Plan Filtering 🟡
+**1a. Grant IAM role in Google Cloud Console:**
+```
+URL: https://console.cloud.google.com/iam-admin/iam?project=unplango-app-b3db1
+Action: Find service account → firebase-adminsdk-fbsvc@unplango-app-b3db1.iam.gserviceaccount.com
+Add role: "Cloud Datastore User"
+```
 
-1. Filter plans by user's accommodation in feed
-2. Hide past plans (datetime < now)
-3. Sort by datetime ascending (soonest first)
+**1b. Verify the fix locally:**
+```bash
+cd backend
+node -e "import('./src/config/firebase.js').then(() => console.log('Firebase OK'))"
+```
+Then POST to `/auth/signup` with a test user. If you get a `token` back, Step 1 is done.
 
-### Priority 4: Enhance UX 🟢
+**1c. Deploy Firestore indexes and rules:**
+```bash
+# From project root
+firebase deploy --only firestore:indexes,firestore:rules
+```
+This deploys the composite index required for the feed query (`accommodationId + startDate`).
+Without this, the feed query will throw a Firestore index error in production.
 
-1. Add profile photo upload (Firebase Storage)
-2. Add real-time Firestore listeners for live participant updates
-3. Add proper error toast notifications
-4. Test mobile responsiveness on real device
+**Definition of Done:** `POST /auth/login` returns `{ token, user }` in the deployed Railway environment.
+
+---
+
+### STEP 2 — Verify the Core Magic Loop (2 hours) 🟡
+
+With auth working, manually test this exact sequence end-to-end on the deployed URL:
+
+```
+1. Sign up with accommodationId = "block-a"
+2. Sign up a second account with the SAME accommodationId = "block-a"  
+3. Account 1: Create a plan (title, location, future startDate)
+4. Account 2: Open the feed → plan should appear
+5. Account 2: Tap "I'm In" → should succeed
+6. Account 1: Open the feed → participant count should update (after refresh)
+7. Account 1: Open MyActivity → plan should appear under "Created"
+8. Account 2: Open MyActivity → plan should appear under "Joined"
+```
+
+**If Step 4 fails (plan not in feed):** The `accommodationId` is not being set on the Plan document. Check `PlanService.createPlan` — it reads `userDoc.accommodationId` from Firestore. Confirm the user document has this field by checking Firestore Console.
+
+**If Step 8 fails:** `GET /plans/me/joined` hits `PlanRepository.getUserJoinedPlans`. Check Railway logs for errors.
+
+**Definition of Done:** Both accounts can see, create, and join plans. MyActivity shows real data.
+
+---
+
+### STEP 3 — Tighten & Ship (4 hours) 🟢
+
+Run these in parallel — they are independent:
+
+| Task | File | Change |
+|---|---|---|
+| Add `ProfileEdit` route to nav | `frontend/src/components/Nav.jsx` | Link to `/profile` |
+| Verify past plans are hidden | `PlanRepository.findByAccommodation` | Already filtering `startDate >= now` in memory — confirm it works |
+| Test on real phone (Safari + Chrome) | — | Check tap targets, font sizes, form inputs on mobile |
+| Set `JWT_SECRET` env var on Railway | Railway dashboard → Variables | Must NOT be the default `"dev-secret"` string |
+
+**Definition of Done:** App loads on a real phone, login works, feed shows only future plans for the correct building, and MyActivity shows real data. **Deploy.**
+
+---
+
+### What is explicitly NOT in these 3 steps (Phase 2 backlog):
+
+| Feature | Status |
+|---|---|
+| ~~Chat / messaging~~ | ❌ Killed — Phase 2 |
+| ~~Google OAuth~~ | ❌ Killed — Phase 2 |
+| ~~Push notifications~~ | ❌ Phase 2 (add FCM after launch) |
+| ~~Profile photo upload~~ | ❌ Replaced by DiceBear avatars (already done) |
+| ~~Dark mode~~ | ❌ Phase 3 |
+| ~~Real-time Firestore listeners~~ | ❌ Phase 2 (manual refresh is acceptable for beta) |
 
 ---
 
