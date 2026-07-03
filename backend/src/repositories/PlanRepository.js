@@ -16,7 +16,7 @@ export class PlanRepository {
 
     // Simple query to avoid Firestore composite index errors
     const snapshot = await plansCollection
-      .where("accommodationId", "==", accommodationId)
+      .where("accommodationId", "==", accommodationId.toLowerCase())
       .get();
 
     let plans = snapshot.docs.map((doc) => ({

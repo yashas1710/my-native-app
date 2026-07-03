@@ -198,9 +198,8 @@ export default function Card({
               <UsersIcon />
               <span>
                 {participantCount !== undefined
-                  ? `${participantCount}/${plan.maxSpots}`
-                  : `${plan.maxSpots}`}{" "}
-                spots
+                  ? `${Math.max(0, plan.maxSpots - participantCount)} spots left`
+                  : `${plan.maxSpots} spots`}
               </span>
             </div>
           ) : null}

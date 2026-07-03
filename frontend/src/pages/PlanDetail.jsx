@@ -162,7 +162,7 @@ export default function PlanDetail() {
             </>
           ) : (
             <button disabled={!isParticipant && isFull} onClick={handleJoinLeave} className={`px-4 py-2 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed ${isParticipant ? 'bg-orange-500' : isFull ? 'bg-gray-500' : 'bg-green-600'}`}>
-              {isParticipant ? 'Leave Plan' : isFull ? 'Full 🔒' : 'Join Plan'}
+              {isParticipant ? "You're In" : isFull ? 'Full 🔒' : "I'm In"}
             </button>
           )}
           {(isParticipant || isCreator) && (

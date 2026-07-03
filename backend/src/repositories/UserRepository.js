@@ -25,7 +25,7 @@ export class UserRepository {
 
   async findByAccommodation(accommodationId) {
     const snapshot = await usersCollection
-      .where("accommodationId", "==", accommodationId)
+      .where("accommodationId", "==", accommodationId.toLowerCase())
       .get();
 
     return snapshot.docs.map((doc) => {

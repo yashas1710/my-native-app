@@ -3,23 +3,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Users: backend owns all writes (Admin SDK bypasses rules).
-    // Client-side reads only needed if you add direct SDK reads later.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if false; // All user writes go through backend Admin SDK
+      allow read, write: if false; 
     }
 
-    // Plans: backend owns all writes. Read is open to any authenticated user
-    // (accommodation scoping is enforced at the application layer in PlanService).
+    // Plans: backend owns all writes.
     match /plans/{planId} {
-      allow read: if request.auth != null;
-      allow write: if false; // All plan writes go through backend Admin SDK
+      allow read, write: if false; 
     }
 
     // PlanParticipants: backend owns all writes.
     match /planParticipants/{docId} {
-      allow read: if request.auth != null;
-      allow write: if false; // All participant writes go through backend Admin SDK
+      allow read, write: if false; 
+    }
+
+    match /planChats/{docId} {
+      allow read, write: if false;
     }
   }
 }

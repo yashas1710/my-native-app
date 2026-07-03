@@ -19,6 +19,9 @@ app.use(express.json());
 // Health check
 app.get("/health", (req, res) => res.json({ status: "OK" }));
 
+// Trust proxy for Railway/Vercel (needed for rate limiting)
+app.set("trust proxy", 1);
+
 // Auth rate limiter — applied to unauthenticated endpoints only
 import { authLimiter } from "./middleware/rateLimiters.js";
 app.use("/auth/signup", authLimiter);

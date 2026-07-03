@@ -23,7 +23,8 @@ const nameSchema = z
 const accommodationIdSchema = z
   .string()
   .min(1, "Accommodation ID is required")
-  .trim();
+  .trim()
+  .toLowerCase();
 
 const genderSchema = z.enum(["male", "female", "other", "prefer_not_to_say"]).optional();
 

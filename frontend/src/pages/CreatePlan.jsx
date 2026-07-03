@@ -65,7 +65,7 @@ export default function CreatePlan() {
         maxSpots: maxSpots ? Number(maxSpots) : null,
       });
       toast.success("Plan created ✅");
-      navigate("/activity");
+      navigate("/home");
     } catch (err) {
       const message = err.response?.data?.error || err.message;
       console.error(err);
