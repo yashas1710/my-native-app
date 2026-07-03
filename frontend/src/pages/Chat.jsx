@@ -1,17 +1,6 @@
-// src/pages/Chat.jsx
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  getDoc,
-  doc,
-} from "firebase/firestore";
-import { db } from "../firebase";
+import { plansAPI } from "../api";
 import { useAuth } from "../context/AuthContext";
 import Spinner from "../components/Spinner";
 
@@ -25,10 +14,16 @@ const getInitials = (name = "") =>
     .join("");
 
 const formatTime = (value) =>
-  value?.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  }) || "";
+  {
+    const date = value instanceof Date ? value : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
 export default function Chat() {
   const { planId } = useParams();
@@ -40,63 +35,63 @@ export default function Chat() {
   const [planTitle, setPlanTitle] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Fetch plan title
+  const fetchMessages = useCallback(async ({ showLoading = false } = {}) => {
+    if (!planId) return;
+
+    try {
+      if (showLoading) setLoading(true);
+
+      const response = await plansAPI.getPlanMessages(planId);
+      setMessages(response.data.messages || []);
+    } catch (err) {
+      console.error("Failed to fetch chat messages:", err);
+
+      if (err.response?.status === 403 || err.response?.status === 404) {
+        navigate(`/plan/${planId}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate, planId]);
+
   useEffect(() => {
     const fetchPlan = async () => {
-      const snap = await getDoc(doc(db, "plans", planId));
-      if (snap.exists()) setPlanTitle(snap.data().title);
+      try {
+        const response = await plansAPI.getPlanById(planId);
+        setPlanTitle(response.data.plan?.title || "");
+      } catch (err) {
+        console.error("Failed to fetch plan:", err);
+      }
     };
+
     fetchPlan();
   }, [planId]);
 
-  // Real-time listener for messages
   useEffect(() => {
-    const q = query(
-      collection(db, "planChats", planId, "messages"),
-      orderBy("createdAt", "asc")
-    );
-    const unsub = onSnapshot(q, async (snapshot) => {
-      const msgs = await Promise.all(
-        snapshot.docs.map(async (d) => {
-          const data = d.data();
-          let senderName = "Unknown";
-          let senderPhoto = "";
-          if (data.userId) {
-            const uSnap = await getDoc(doc(db, "users", data.userId));
-            if (uSnap.exists()) {
-              const u = uSnap.data();
-              senderName = u.name || u.displayName || u.fullName || u.email || "Unknown";
-              senderPhoto = u.photoUrl || u.photoURL || "";
-            }
-          }
-          return {
-            id: d.id,
-            text: data.text,
-            createdAt: data.createdAt?.toDate(),
-            senderName,
-            senderPhoto,
-            userId: data.userId,
-          };
-        })
-      );
-      setMessages(msgs);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [planId]);
+    fetchMessages({ showLoading: true });
+
+    const intervalId = window.setInterval(() => {
+      fetchMessages();
+    }, 4000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchMessages]);
 
   // Send new message
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    await addDoc(collection(db, "planChats", planId, "messages"), {
-      text: newMessage,
-      userId: user.id,
-      createdAt: serverTimestamp(),
-    });
-
+    const text = newMessage.trim();
     setNewMessage("");
+
+    try {
+      await plansAPI.sendPlanMessage(planId, text);
+      await fetchMessages();
+    } catch (err) {
+      console.error("Failed to send chat message:", err);
+      setNewMessage(text);
+    }
   };
 
   const participantMap = new Map();

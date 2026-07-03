@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import Layout from "./components/Layout.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
 const Profile = lazy(() => import("./pages/Profile"));
-// Chat is Phase 2 — intentionally removed from MVP bundle
+const Chat = lazy(() => import("./pages/Chat.jsx"));
 
 // Lazy-loaded pages
 import HomeFeed from "./pages/HomeFeed.jsx";
@@ -78,7 +78,16 @@ export default function App() {
                 </RequireAuth>
               }
             />
-            {/* /chat/:planId — Phase 2 */}
+            <Route
+              path="/chat/:planId"
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <Chat />
+                  </Layout>
+                </RequireAuth>
+              }
+            />
             <Route
               path="/edit-plan/:id"
               element={

@@ -67,6 +67,10 @@ export const plansAPI = {
   joinPlan: (id) => api.post(`/plans/${id}/join`),
   
   leavePlan: (id) => api.post(`/plans/${id}/leave`),
+
+  getPlanMessages: (id) => api.get(`/plans/${id}/messages`),
+
+  sendPlanMessage: (id, text) => api.post(`/plans/${id}/messages`, { text }),
   
   getMyCreatedPlans: (page = 1) => api.get("/plans/me/created", { params: { page } }),
   

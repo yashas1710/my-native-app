@@ -6,6 +6,7 @@ dotenv.config();
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/auth.js";
+import chatRoutes from "./routes/chat.js";
 import planRoutes from "./routes/plans.js";
 import "./config/firebase.js"; // Initialize Firebase Admin SDK
 
@@ -25,6 +26,7 @@ app.use("/auth/login", authLimiter);
 
 // Routes (apiLimiter is applied per-route inside each router, after auth middleware)
 app.use("/auth", authRoutes);
+app.use("/plans", chatRoutes);
 app.use("/plans", planRoutes);
 
 app.get("/", (req, res) => {
