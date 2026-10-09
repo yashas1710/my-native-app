@@ -1,7 +1,5 @@
+import "./config/env.js";
 import express from "express";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 import cors from "cors";
 import rateLimit from "express-rate-limit";
@@ -13,7 +11,8 @@ import "./config/firebase.js"; // Initialize Firebase Admin SDK
 const app = express();
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
+const frontendOrigin = process.env.FRONTEND_URL?.trim().replace(/\/+$/, "");
+app.use(cors({ origin: frontendOrigin || '*', credentials: true }));
 app.use(express.json());
 
 // Health check
@@ -44,7 +43,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
