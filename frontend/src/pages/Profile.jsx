@@ -220,6 +220,16 @@ export default function Profile() {
         />
 
         <label style={{ display: "block", marginBottom: "5px", fontSize: "12px", fontWeight: 500, color: "var(--text-2)" }}>
+          Accommodation
+        </label>
+        <input
+          type="text"
+          value={user?.accommodationId || ""}
+          readOnly
+          style={{ ...inputStyle, marginBottom: "16px", opacity: 0.75 }}
+        />
+
+        <label style={{ display: "block", marginBottom: "5px", fontSize: "12px", fontWeight: 500, color: "var(--text-2)" }}>
           Gender (Optional)
         </label>
         <select

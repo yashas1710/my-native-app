@@ -5,6 +5,7 @@ import { plansAPI } from "../api";
 import { useAuth } from "../context/AuthContext";
 import toast, { Toaster } from "react-hot-toast";
 import Spinner from "../components/Spinner";
+import useGeolocation from "../hooks/useGeolocation";
 
 const labelStyle = {
   display: "block",
@@ -29,6 +30,7 @@ const fieldStyle = {
 export default function CreatePlan() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const geolocation = useGeolocation({ autoRequest: false });
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -56,6 +58,7 @@ export default function CreatePlan() {
 
     try {
       setSaving(true);
+      const currentLocation = await geolocation.requestLocation();
       await plansAPI.createPlan({
         title: title.trim(),
         description: description.trim(),
@@ -63,6 +66,10 @@ export default function CreatePlan() {
         startDate: new Date(startDate).toISOString(),
         endDate: endDate ? new Date(endDate).toISOString() : null,
         maxSpots: maxSpots ? Number(maxSpots) : null,
+        ...(currentLocation ? {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+        } : {}),
       });
       toast.success("Plan created ✅");
       navigate("/home");

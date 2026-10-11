@@ -48,6 +48,9 @@ export const authAPI = {
   
   getMe: () => api.get("/auth/me"),
 
+  updateLocation: (latitude, longitude) =>
+    api.put("/me/location", { latitude, longitude }),
+
   updateProfile: ({ name, photoUrl, bio, gender }) =>
     api.patch("/auth/profile", { name, photoUrl, bio, gender }),
 };

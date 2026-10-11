@@ -1,28 +1,40 @@
 import { useEffect, useState } from "react";
-import { plansAPI } from "../api";
+import { authAPI, plansAPI } from "../api";
 import Card from "../components/Card";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
+import useGeolocation from "../hooks/useGeolocation";
 
 export default function HomeFeed() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const geolocation = useGeolocation();
 
   const [activePlans, setActivePlans] = useState([]);
   const [joinedPlanIds, setJoinedPlanIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [locationFallback, setLocationFallback] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || geolocation.status === "idle" || geolocation.status === "loading") return;
 
     const fetchData = async () => {
       try {
         setLoading(true);
 
+        if (geolocation.status === "granted") {
+          try {
+            await authAPI.updateLocation(geolocation.latitude, geolocation.longitude);
+          } catch (locationError) {
+            console.error("Failed to save location:", locationError);
+          }
+        }
+
         const feedResponse = await plansAPI.getFeed();
         const plansData = feedResponse.data.plans || [];
+        setLocationFallback(geolocation.status !== "granted" || feedResponse.data.locationFallback === true);
 
         const joinedResponse =
           await plansAPI.getMyJoinedPlans();
@@ -46,7 +58,12 @@ export default function HomeFeed() {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, geolocation.status, geolocation.latitude, geolocation.longitude]);
+
+  const retryLocation = async () => {
+    setLoading(true);
+    await geolocation.retry();
+  };
 
   const handleJoin = async (plan) => {
     try {
@@ -114,6 +131,9 @@ export default function HomeFeed() {
     }
   };
 
+  if (loading && (geolocation.status === "idle" || geolocation.status === "loading")) {
+    return <div role="status" style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "var(--text-2)" }}>Checking your location and loading plans…</div>;
+  }
   if (loading) return <Spinner />;
 
   return (
@@ -125,6 +145,12 @@ export default function HomeFeed() {
       }}
     >
       <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+        {locationFallback && (
+          <div role="status" style={{ marginBottom: "16px", padding: "12px 14px", borderRadius: "8px", background: "var(--surface)", color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", fontSize: "13px" }}>
+            <span>Enable location to see plans near you</span>
+            <button type="button" onClick={retryLocation} style={{ border: 0, background: "transparent", color: "var(--brand)", fontWeight: 600, cursor: "pointer" }}>Retry</button>
+          </div>
+        )}
         <header style={{ marginBottom: "24px" }}>
           <h1
             style={{

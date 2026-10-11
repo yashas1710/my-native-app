@@ -94,7 +94,7 @@ export default function PlanCard({ plan, user }) {
         {plan.startDate?.seconds
           ? new Date(plan.startDate.seconds * 1000).toLocaleString()
           : plan.startDate?.toDate?.().toLocaleString()}{" "}
-        @ {plan.location}
+        @ {plan.location}{Number.isFinite(plan.distanceKm) && ` · ${plan.distanceKm} km away`}
       </p>
 
       {/* Creator */}

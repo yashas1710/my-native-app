@@ -189,7 +189,10 @@ export default function Card({
           {plan.location && (
             <div className="flex items-center gap-1.5">
               <PinIcon />
-              <span>{plan.location}</span>
+              <span>
+                {plan.location}
+                {Number.isFinite(plan.distanceKm) && ` · ${plan.distanceKm} km away`}
+              </span>
             </div>
           )}
 
