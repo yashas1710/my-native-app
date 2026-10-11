@@ -8,7 +8,6 @@ const requiredVariables = [
   "FIREBASE_PRIVATE_KEY_ID",
   "FIREBASE_CLIENT_ID",
   "FIREBASE_CLIENT_X509_CERT_URL",
-  "FIREBASE_PRIVATE_KEY_BASE64",
   "JWT_SECRET",
   "FRONTEND_URL",
 ];
@@ -19,6 +18,9 @@ export function validateEnv(env = process.env) {
   const missing = requiredVariables.filter((name) =>
     (name !== "FRONTEND_URL" || production) && !env[name]?.trim()
   );
+  if (!env.FIREBASE_PRIVATE_KEY_BASE64?.trim() && !env.FIREBASE_PRIVATE_KEY?.trim()) {
+    missing.push("FIREBASE_PRIVATE_KEY_BASE64 or FIREBASE_PRIVATE_KEY");
+  }
   if (missing.length) {
     console.error(`Startup environment validation failed. Missing variables: ${missing.join(", ")}`);
     process.exit(1);
