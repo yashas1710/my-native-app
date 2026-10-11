@@ -41,6 +41,11 @@ export const loginSchema = z.object({
   password: passwordSchema,
 });
 
+export const updateLocationSchema = z.object({
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
+
 export const updateProfileSchema = z.object({
   name: nameSchema.optional(),
   bio: z.string().max(500).optional(),
@@ -54,7 +59,7 @@ export const validateInput = (schema, data) => {
   } catch (err) {
     return {
       success: false,
-      errors: err.errors.map((e) => ({
+      errors: err.issues.map((e) => ({
         field: e.path.join("."),
         message: e.message,
       })),

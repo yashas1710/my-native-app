@@ -1,6 +1,17 @@
 import { usersCollection } from "../models/User.js";
+import { admin } from "../config/firebase.js";
 
 export class UserRepository {
+  async updateLocation(userId, latitude, longitude) {
+    await usersCollection.doc(userId).update({
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      locationUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return this.findById(userId);
+  }
+
   async findByEmail(email) {
     const snapshot = await usersCollection
       .where("email", "==", email.toLowerCase().trim())

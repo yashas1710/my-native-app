@@ -102,17 +102,21 @@ export class PlanController {
 
   async getPlansByAccommodation(req, res) {
     try {
-      const page = parseInt(req.query.page) || 1;
-
-      const plans = await PlanService.getPlansByAccommodation(
-        req.user.accommodationId,
-        page
-      );
+      const page = Math.max(1, parseInt(req.query.page) || 1);
+      const requestedRadius = Number(req.query.radiusKm ?? 10);
+      const radiusKm = Number.isNaN(requestedRadius)
+        ? 10 : Math.min(50, Math.max(1, requestedRadius));
+      // Auth middleware loads the current user document on each request.
+      const { latitude, longitude } = req.user;
+      const locationFallback = !Number.isFinite(latitude) || !Number.isFinite(longitude);
+      const plans = locationFallback
+        ? await PlanService.getPlansByAccommodation(req.user.accommodationId, page)
+        : (await PlanService.getNearbyPlans(latitude, longitude, radiusKm, page)).plans;
 
       res.json({
         plans,
         page,
-        total: plans.length,
+        locationFallback,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

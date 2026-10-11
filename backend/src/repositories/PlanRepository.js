@@ -1,8 +1,42 @@
 import { db } from "../config/firebase.js";
 import { plansCollection } from "../models/Plan.js";
 import { participantsCollection } from "../models/PlanParticipant.js";
+import { haversineDistanceKm } from "../utils/distance.js";
 
 export class PlanRepository {
+  async findNearby(userLat, userLng, radiusKm) {
+    if (!Number.isFinite(userLat) || !Number.isFinite(userLng)) {
+      return { plans: [], reason: "USER_LOCATION_MISSING" };
+    }
+
+    // Filter in memory to support existing Date, Timestamp and ISO date values.
+    const now = new Date();
+    const snapshot = await plansCollection.get();
+    const nearby = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((plan) => {
+        if (!Number.isFinite(plan.latitude) || !Number.isFinite(plan.longitude)
+          || !plan.startDate) return false;
+        const startDate = typeof plan.startDate?.toDate === "function"
+          ? plan.startDate.toDate() : new Date(plan.startDate);
+        return startDate >= now;
+      })
+      .map((plan) => ({
+        plan,
+        distance: haversineDistanceKm(userLat, userLng, plan.latitude, plan.longitude),
+      }))
+      .filter(({ distance }) => distance <= radiusKm)
+      .sort((a, b) => a.distance - b.distance);
+
+    return {
+      plans: nearby.map(({ plan, distance }) => ({
+        ...plan,
+        distanceKm: Math.round(distance * 10) / 10,
+      })),
+      reason: null,
+    };
+  }
+
   async findById(id) {
     const doc = await plansCollection.doc(id).get();
 
@@ -82,6 +116,8 @@ export class PlanRepository {
   async create(planData) {
     const docRef = await plansCollection.add({
       ...planData,
+      latitude: planData.latitude ?? null,
+      longitude: planData.longitude ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

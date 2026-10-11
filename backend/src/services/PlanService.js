@@ -2,6 +2,16 @@ import PlanRepository from "../repositories/PlanRepository.js";
 import UserRepository from "../repositories/UserRepository.js";
 
 export class PlanService {
+  async getNearbyPlans(latitude, longitude, radiusKm, page = 1) {
+    const result = await PlanRepository.findNearby(latitude, longitude, radiusKm);
+    const limit = 20;
+    const skip = (page - 1) * limit;
+    return {
+      ...result,
+      plans: result.plans.slice(skip, skip + limit).map((plan) => this.toPlanDTO(plan)),
+    };
+  }
+
   async createPlan(userId, planData) {
     const userDoc = await UserRepository.findById(userId);
 
@@ -202,6 +212,9 @@ export class PlanService {
     title: plan.title,
     description: plan.description,
     location: plan.location,
+    latitude: plan.latitude ?? null,
+    longitude: plan.longitude ?? null,
+    ...(plan.distanceKm !== undefined ? { distanceKm: plan.distanceKm } : {}),
 
     startDate: normalizeDate(plan.startDate),
     endDate: normalizeDate(plan.endDate),

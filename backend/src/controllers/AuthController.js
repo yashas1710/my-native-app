@@ -1,7 +1,26 @@
 import AuthService from "../services/AuthService.js";
-import { validateInput, signupSchema, loginSchema } from "../validators/authValidator.js";
+import { validateInput, signupSchema, loginSchema, updateLocationSchema } from "../validators/authValidator.js";
+import UserRepository from "../repositories/UserRepository.js";
 
 export class AuthController {
+  async updateLocation(req, res) {
+    try {
+      const validation = validateInput(updateLocationSchema, req.body);
+      if (!validation.success) {
+        return res.status(400).json({ errors: validation.errors });
+      }
+
+      const { latitude, longitude } = validation.data;
+      const user = await UserRepository.updateLocation(req.user.id, latitude, longitude);
+      res.json({
+        message: "Location updated successfully",
+        user: AuthService.toProfileDTO(user),
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+
   async signup(req, res) {
     try {
       console.log("📝 Signup request:", req.body);

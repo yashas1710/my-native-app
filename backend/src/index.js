@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/auth.js";
+import meRoutes from "./routes/me.js";
 import chatRoutes from "./routes/chat.js";
 import planRoutes from "./routes/plans.js";
 import "./config/firebase.js"; // Initialize Firebase Admin SDK
@@ -28,6 +29,7 @@ app.use("/auth/login", authLimiter);
 
 // Routes (apiLimiter is applied per-route inside each router, after auth middleware)
 app.use("/auth", authRoutes);
+app.use("/me", meRoutes);
 app.use("/plans", chatRoutes);
 app.use("/plans", planRoutes);
 

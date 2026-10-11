@@ -37,6 +37,8 @@ export const createPlanSchema = z
   .object({
     title: titleSchema,
     location: locationSchema,
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
     description: descriptionSchema,
 
     startDate: dateSchema,
